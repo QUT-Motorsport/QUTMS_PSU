@@ -1,0 +1,8 @@
+# VSCode settings ignore
+.vscode
+
+jsonLog.json
+textLog.txt
+
+# Data for demonstration
+demo
