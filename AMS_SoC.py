@@ -22,6 +22,8 @@ import matplotlib.animation as animation
 import tensorflow as tf
 import tensorflow_addons as tfa
 
+from scipy import integrate # integration with trapizoid
+
 from AutoFeedBack import AutoFeedBack
 
 mpl.rcParams['figure.figsize'] = (32, 16)
@@ -57,6 +59,59 @@ def get_demo_data():
         BMSt_DataFrames.append(pd.read_csv(f'demo/temperatures/CANid_{i}.csv'))
     current = pd.read_csv(f'demo/current.csv')
     return BMSv_DataFrames, BMSt_DataFrames, current
+
+def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
+        gSoC : np.ndarray, cell : int) -> tuple[np.float32, np.float32]:
+    """ Determine state of charge based on 3-4 feature model
+    """
+    test_data : np.ndarray = np.zeros(shape=(500,4), dtype=np.float32)
+    test_data[:, 0] =-I.iloc[::fs,0].to_numpy()
+    test_data[:, 1] = V.iloc[::fs,cell].to_numpy()
+    test_data[:, 2] = T.iloc[::,cell].to_numpy()
+    test_data[:,:3]= np.divide(
+                    np.subtract(
+                            np.copy(a=test_data[:,:3]),
+                            MEAN
+                        ),
+                    STD
+                )
+    VIT_charge = model.predict(np.expand_dims(test_data[:,:3], axis=0),
+                            batch_size=1)[0][0]
+    
+    test_data[:,3] = gSoC[:,cell]
+    VITpSoC_charge = VITpSOC.predict(np.expand_dims(test_data[:,:], axis=0),
+                            batch_size=1)[0]
+    return VIT_charge, VITpSoC_charge
+
+def ccSoC(current   : pd.Series,
+          time_s    : pd.Series,
+          n_capacity: float = 2.5 ) -> pd.Series:
+    """ Return SoC based on Couloumb Counter.
+    TODO: Ceil the data and reduce to 2 decimal places.
+
+    Args:
+        chargeData (pd.Series): Charge Data Series
+        discargeData (pd.Series): Discharge Data Series
+
+    Raises:
+        ValueError: If any of data has negative
+        ValueError: If the data trend is negative. (end-beg)<0.
+
+    Returns:
+        pd.Series: Ceil data with 2 decimal places only.
+    """
+    # Raise error
+    # if(any(time_s) < 0):
+    #     raise ValueError("Parser: Time cannot be negative.")
+    # if(n_capacity == 0):
+    #     raise ZeroDivisionError("Nominal capacity cannot be zero.")
+    # Integration with trapezoid    
+    # Nominal Capacity 2.5Ah. Double for that
+    #uni_data_multi["CC"] = uni_data_multi["trapz(I)"]/3600*2.5
+    #DoD = DsgCap - ChgCap
+    #SOC = 1-Dod/Q
+    #@ 25deg I said it was 2.5
+    return (integrate.cumtrapz(current, time_s, initial=0)/abs(n_capacity*2))
 # %%
 if __name__ == '__main__':
     #! Setup all plots for animations
@@ -64,9 +119,9 @@ if __name__ == '__main__':
 
     labels_v = ['cell-1','cell-2','cell-3','cell-4','cell-5','cell-6','cell-7','cell-8','cell-9','cell-10']
     labels_t = ['sns-1','sns-2','sns-3','sns-4','sns-5','sns-6','sns-7','sns-8','sns-9','sns-10','sns-11','sns-12']
-    fig = plt.figure(num = 0, figsize=(32,16))
-    # fig.suptitle("AMS here                          CC && SoC w/ VIT  && SoC w/ VITpSoC                   AMS here",
-    #             fontsize=12)
+    fig = plt.figure(num = 1, figsize=(32,16))
+    fig.suptitle("AMS here                          CC && SoC w/ VIT  && SoC w/ VITpSoC                   AMS here",
+                fontsize=12)
     
     v_shape : int = 6
     h_shape : int = 6
@@ -178,10 +233,10 @@ if __name__ == '__main__':
         ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
         ax.set_title(f'CANid {id}')
         ax.set_ylim([0, 100])
-        ax.set_xlim([0, 60])
+        ax.set_xlim([0, 120])
         linesCC.append(
-                ax.plot(range(60),
-                       [[50]*10]*60,
+                ax.plot(range(120),
+                       [50]*120,
                     #    label=labels
 
                 )
@@ -215,36 +270,13 @@ if __name__ == '__main__':
         print('One of the models failed to load.')
 
     fs : int = 4
+    iSoC = 0.78
     MEAN = np.array([-0.35640615,  3.2060466 , 30.660755  ], dtype=np.float32)
     STD  = np.array([ 0.9579658 ,  0.22374259, 13.653275  ], dtype=np.float32)
     cSoC = [np.zeros(shape=(500, 10), dtype=np.float32)]*6
-    pSoC = [np.ones(shape=(500, 10), dtype=np.float32)*0.78]*6
-# %%    
-    def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
-            gSoC : np.ndarray, cell : int) -> np.ndarray:
-        """ Determine state of charge based on 3-4 feature model
-        """
-        test_data : np.ndarray = np.zeros(shape=(500,4), dtype=np.float32)
-        test_data[:, 0] =-I.iloc[::fs,0].to_numpy()
-        test_data[:, 1] = V.iloc[::fs,cell].to_numpy()
-        test_data[:, 2] = T.iloc[::,cell].to_numpy()
-        test_data[:,:3]= np.divide(
-                        np.subtract(
-                                np.copy(a=test_data[:,:3]),
-                                MEAN
-                            ),
-                        STD
-                    )
-        VIT_charge = model.predict(np.expand_dims(test_data[:,:3], axis=0),
-                                batch_size=1)[0][0]
-        
-        test_data[:,3] = gSoC[:,cell]
-        VITpSoC_charge = VITpSOC.predict(np.expand_dims(test_data[:,:], axis=0),
-                                batch_size=1)[0]
-        return VIT_charge, VITpSoC_charge
+    pSoC = [np.ones(shape=(500, 10), dtype=np.float32)*iSoC]*6
+    CC = np.ones(shape=(120, 6), dtype=np.float32)*iSoC
 
-    def CC():
-        pass
 # %%
     i = 0
     tick = time.perf_counter()
@@ -299,24 +331,25 @@ if __name__ == '__main__':
                     )
                 # print(cSoC[bms][:,cell].shape)
                 # print(pSoC[bms][:,cell].shape)
-                #?  Coulumb Counter
-                # linesTp[bms][id].set_ydata(
-                #         BMSt.iloc[:,id].to_numpy()
-                #     )
+            #?  Coulumb Counter
+            newCC = CC[-1,bms] + ccSoC(current=TotI[-i:].to_numpy()[0]*6, time_s=np.expand_dims(i, axis=0))
+            CC[:,bms] = np.concatenate(
+                        (CC[:,bms], newCC),
+                        axis=0
+                    )[1:]
+            linesCC[bms][0].set_ydata(
+                    CC[:,bms]*100
+                )
         #?  Current plot
         linesCurrent[0][0].set_ydata(
                 TotI.to_numpy()[-360-i:-i]
             )
-        tuples_return = tuple(linesSoCb[0])
-        for bms in range(1, len(linesSoCb)):
+        tuples_return = tuple(linesCurrent[0])
+        for bms in range(0, len(linesSoCb)):
             tuples_return += tuple(linesSoCb[bms])
-        for bms in range(0, len(linesSoCb)):
             tuples_return += tuple(linesSoCp[bms])
-        for bms in range(0, len(linesSoCb)):
             tuples_return += tuple(linesSoCplusb[bms])
-        for bms in range(0, len(linesSoCb)):
             tuples_return += tuple(linesSoCplusp[bms])
-        tuples_return += tuple(linesCurrent[0])
         i += 1
         print(time.perf_counter()-tick)
         return tuples_return
