@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# %% [markdown]
+# # # AMS Heavy plotting
+# Script intended to ptoduce multiplots of Voltages and temperature over time
+#csv files. State of Charge monitor is a matter of another script.
+# %%
 import time
 
 # Data management
@@ -11,8 +17,8 @@ import matplotlib.cm as cm
 import matplotlib.animation as animation
 
 
-mpl.rcParams['figure.figsize'] = (8, 6)
-mpl.rcParams['axes.grid'] = False
+mpl.rcParams['figure.figsize'] = (32, 16)
+mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
@@ -35,7 +41,7 @@ if __name__ == '__main__':
     labels_v = ['cell-1','cell-2','cell-3','cell-4','cell-5','cell-6','cell-7','cell-8','cell-9','cell-10']
     labels_t = ['sns-1','sns-2','sns-3','sns-4','sns-5','sns-6','sns-7','sns-8','sns-9','sns-10','sns-11','sns-12']
     fig = plt.figure(num = 0, figsize=(32,16))
-    fig.suptitle("AMS here                                      AMS here",
+    fig.suptitle("AMS here                          VOLTAGES && TEMPERATURES                            AMS here",
                 fontsize=12)
     # Voltages Bars
     ax0  = plt.subplot2grid(fig = fig, shape=(3, 6), loc=(0, 2), colspan=1)
@@ -71,8 +77,7 @@ if __name__ == '__main__':
         linesVb.append(
                 ax.bar(range(10),
                        BMSv_DataFrames[id].iloc[-1].to_numpy(),
-                    #    color=my_cmap(SoC[-1,:, id])
-                )
+                    )
             )
         id+=1
     
@@ -86,8 +91,7 @@ if __name__ == '__main__':
         linesVp.append(
                 ax.plot(range(60),
                         BMSv_DataFrames[id].iloc[-60:].to_numpy(),
-                        #    label=labels
-                )
+                    )
             )
         ax.legend(labels_v, loc='center left')
         id+=1
@@ -122,6 +126,8 @@ if __name__ == '__main__':
                 linesVb[bms][id].set_height(
                        BMSv.iloc[-i, id]
                     )
+                if(id == 1):
+                    linesVb[bms][id].set_color('r')
                 linesVp[bms][id].set_ydata(
                         BMSv.iloc[:,id].to_numpy()
                     )
@@ -141,6 +147,6 @@ if __name__ == '__main__':
     # ani = animation.FuncAnimation(
     #         fig, animate, interval=1000, blit=True, save_count=50)
     ani = animation.FuncAnimation(
-            fig, animate, interval=0, blit=False)
+            fig, animate, interval=0, blit=True)
     fig.show()
     input('Exiting?')
