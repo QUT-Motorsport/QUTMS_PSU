@@ -118,7 +118,7 @@ if __name__ == '__main__':
     # BMSv_DataFrames, BMSt_DataFrames, current = get_demo_data()
 
     labels_v = ['cell-1','cell-2','cell-3','cell-4','cell-5','cell-6','cell-7','cell-8','cell-9','cell-10']
-    labels_t = ['sns-1','sns-2','sns-3','sns-4','sns-5','sns-6','sns-7','sns-8','sns-9','sns-10','sns-11','sns-12']
+    labels_t = ['CC-1','CC-2','CC-3','CC-4','CC-5','CC-6','CC-7','CC-8','CC-9','CC-10','CC-11','CC-12']
     fig = plt.figure(num = 1, figsize=(32,16))
     fig.suptitle("AMS here                          CC && SoC w/ VIT  && SoC w/ VITpSoC                   AMS here",
                 fontsize=12)
@@ -342,7 +342,7 @@ if __name__ == '__main__':
                 )
         #?  Current plot
         linesCurrent[0][0].set_ydata(
-                TotI.to_numpy()[-360-i:-i]
+                TotI.to_numpy()[-360-i:-i]*18
             )
         tuples_return = tuple(linesCurrent[0])
         for bms in range(0, len(linesSoCb)):
