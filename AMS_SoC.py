@@ -26,10 +26,15 @@ from scipy import integrate # integration with trapizoid
 
 from AutoFeedBack import AutoFeedBack
 
+import datetime
+import getpass
+
 mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
+
 my_cmap = cm.get_cmap('jet_r')
+output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 GPU=0
@@ -51,14 +56,14 @@ if physical_devices:
 #! For numeric stability, set the default floating-point dtype to float64
 tf.keras.backend.set_floatx('float32')
 
-def get_demo_data():
-    BMSv_DataFrames = []
-    BMSt_DataFrames = []
-    for i in range(0, h_shape):
-        BMSv_DataFrames.append(pd.read_csv(f'demo/voltages/CANid_{i}.csv'))
-        BMSt_DataFrames.append(pd.read_csv(f'demo/temperatures/CANid_{i}.csv'))
-    current = pd.read_csv(f'demo/current.csv')
-    return BMSv_DataFrames, BMSt_DataFrames, current
+# def get_demo_data():
+#     BMSv_DataFrames = []
+#     BMSt_DataFrames = []
+#     for i in range(0, h_shape):
+#         BMSv_DataFrames.append(pd.read_csv(f'demo/voltages/CANid_{i}.csv'))
+#         BMSt_DataFrames.append(pd.read_csv(f'demo/temperatures/CANid_{i}.csv'))
+#     current = pd.read_csv(f'demo/current.csv')
+#     return BMSv_DataFrames, BMSt_DataFrames, current
 
 def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
         gSoC : np.ndarray, cell : int) -> tuple[np.float32, np.float32]:

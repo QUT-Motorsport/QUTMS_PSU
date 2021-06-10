@@ -5,9 +5,13 @@
 # ready to respond to the AMS's charging check request
 # %%
 import sys, glob
-import io
+import os, io
 from numpy.core.fromnumeric import repeat
 import serial as sr
+
+import json
+from datetime import datetime
+import getpass
 
 DEFAULT_BAUD    : int = 115200
 # %%
@@ -47,31 +51,94 @@ if __name__ == '__main__':
     for i in range(0, len(aports)):
         print("({}) - {}\n".format(i+1, aports[i]))
     
-    # port    : int = int(input("Please select a serial port: "))-1
-    # ser     : sr  = sr.Serial(aports[port], DEFAULT_BAUD)
+    port    : int = int(input("Please select a serial port: "))-1
+    ser     : sr  = sr.Serial(aports[port], DEFAULT_BAUD)
     
     # # Configurate Line terminator - CR/LF (0x0D 0x0A) - EOL
-    # s = io.TextIOWrapper(io.BufferedRWPair(ser, ser),newline="\r\n")
+    s = io.TextIOWrapper(io.BufferedRWPair(ser, ser),newline="\r\n")
     print("Connected to serial port, awaiting AMS wakeup sequence...\n")
     print("Press Stop Loop button on figure to terminate\n")
 
 # %%
-    iter : int = 0
-    jlfid = open('jsonLog.json', 'a')
-    jlfid.write('{\n')
-    tlfid = open('textLog.txt', 'a')
+    jlfid = open('jsonLog2.json', 'r')
+    
+    # Chooce the quick read/write location
+    output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
+    header_voltage = ['Date_Time', 'Step_Time(s)']
+    header_voltage += [f'4Cell_{i}' for i in range(1,11)]
+    header_voltage += '\n'
+    header_temp = ['Date_Time', 'Step_Time(s)']
+    header_temp += [f'Sns_{i}' for i in range(1,15)]
+    header_temp += '\n'
+    header_balance = ['Date_Time', 'Step_Time(s)', 'BalanceVoltage']
+    header_balance += [f'4Cell_{i}' for i in range(1,11)]
+    header_balance += '\n'
+
+    N_BMSs : int = 6
+    if not os.path.exists(output_loc):
+        print('First time, making dirs')
+        os.makedirs(output_loc)
+        
+        os.makedirs(output_loc+'Voltages')
+        os.makedirs(output_loc+'Temperatures')
+        os.makedirs(output_loc+'BalanceInfo')
+        for i in range(0,N_BMSs):
+            with open(output_loc+'Voltages/'+f'CANid_{i}.csv', 'w+') as f:
+                f.write(','.join(header_voltage))
+            with open(output_loc+'Temperatures/'+f'CANid_{i}.csv', 'w+') as f:
+                f.write(','.join(header_temp))
+            with open(output_loc+'BalanceInfo/'+f'CANid_{i}.csv', 'w+') as f:
+                f.write(','.join(header_balance))
+    else:
+        print('Directories exists')
 
     try:
         while(1):
-            while ser.in_waiting():
-                data = readline(s)
+            while ser.inWaiting():
+                data = s.readline()
+                # data = jlfid.readline()
+                # while(data):
+                if(data.replace(',','')[:-1] == str(0x69FF69FE)):
+                    print('AMS charge check')
+                    # ser.write(str(0x69006901), "uint8")
+                else:
+                    # jlfid.write(data + ',')
+                    # record = pd.read_json(data)
+                    # data = record[record.keys()[0]]    # Gets entire record info
+                    # # data.index[2]   # Gets the name
+                    # # data['BMS']
+                    # # data['RT']      # Try getting them by seconds
+                    # # data[2]         # Gets the values
+                    iType, values = list(json.loads(data.replace('},','}')).items())[0]
+                    if(iType == 'BalanceInfo'):
+                        key = list(values.keys())[2]
+                        #TODO That part quite equivalent, see how can it be merged. Remove
+                        record = [
+                            f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                            f'{values["RT"]}',
+                            f'{values["BalanceVoltage"]/1000}'
+                            ]
+                        record += [f'{v}' for v in str(bin(values["BalanceState"]))[2:]]
+                        record += '\n'
+                        with open(f'{output_loc}{iType}/CANid_{values["BMS"]}.csv', 'a') as f:
+                            f.write(','.join(record))
+                    else:
+                        key = list(values.keys())[2]
+                        record = [
+                            f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                            f'{values["RT"]}'
+                            ]
+                        record += [f'{v}' for v in values[key]]
+                        record += '\n'
+                        with open(f'{output_loc}{key}/CANid_{values["BMS"]}.csv', 'a') as f:
+                            f.write(','.join(record))
 
-            # time.sleep(1)
-    except:
+                    # data = jlfid.readline()
+                # time.sleep(1)
+                # print("Data out")
+    except KeyboardInterrupt:
         print('Exiting ...')
-        jlfid.write('}')
         jlfid.close()
-        tlfid.close()
         ser.close()
         # s.close()
 
