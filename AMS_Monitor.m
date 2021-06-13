@@ -91,7 +91,8 @@ while true
             if strncmpi(data, string(0x69FF69FE), strlength(data))
             % We got AMS charge check
                 fprintf(tlfid, data+'\n');
-                write(s, string(0x69006901), "uint8");
+                %write(s, string(069006901), "uint8");
+                write(s, '1778346494\r\n', "uint8");
             else
                 fprintf(tlfid, data);
                 disp(data)

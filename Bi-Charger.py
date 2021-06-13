@@ -18,6 +18,9 @@ from time import perf_counter
 # sys.path.append(os.getcwd() + '/..')
 from py_modules.parse_excel import ParseExcelData
 
+from datetime import datetime
+import getpass
+
 mpl.rcParams['figure.figsize'] = (8, 6)
 mpl.rcParams['axes.grid'] = False
 mpl.rcParams['font.family'] = 'Bender'
@@ -89,7 +92,8 @@ MEASURMENTS : list[str] = ['MEAS:VOLT:DC?\n',
 columns = ['Test_Time(s)', 'Current(A)', 'Charge_Capacity(Ah)', 'Discharge_Capacity(Ah)']
 train_dir	  : str ='Data/A123_Matt_Val_2nd'
 tr_ls_df, _ = ParseExcelData(train_dir,
-                                    range(4 ,12),
+                                    #range(4 ,12), # DST
+                                    range(22,25),   # FUDS
                                     columns)
 #! 1 hour 40 minuts should be good for testing
 step_time = (tr_ls_df[0]['Test_Time(s)'].iloc[2000:8000]-tr_ls_df[0]['Test_Time(s)'].iloc[2000]).to_numpy()
@@ -182,13 +186,21 @@ print(f'Time for Cap charge: {c_time}')
 # # input('Check VOltage and Current respinse...\n\nConnect battery.')
 # %%
 # input('Press any to proceed...')
+output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
+header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
+if not os.path.exists(output_loc+'Current.csv'):
+    print('First time, making dirs')
+    with open(output_loc+'Current.csv', 'w+') as f:
+        f.write(','.join(header_voltage))
+else:
+    print('Directories exists')
 
 writeline(pcb, SOUR_SET[1].format(0))
 writeline(pcb, SINK_SET[1].format(0))
 writeline(pcb, DC_START[1])
 try:
     for i in range(0, len(current)):
-        targetCurrent = current[i]*18
+        targetCurrent = current[i]*20
         if(targetCurrent > 0 and targetCurrent < 200):
             writeline(pcb, SOUR_SET[1].format(targetCurrent))
             writeline(pcb, SOUR_SET[0].format(V_SOUR))
@@ -197,6 +209,15 @@ try:
             writeline(pcb, SINK_SET[1].format(abs(targetCurrent)))
             writeline(pcb, SINK_SET[0].format(V_SINK))
             writeline(pcb, SOUR_SET[1].format(0))
+        record = [
+                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                f'{get_float(pcb, MEASURMENTS[1])}',
+                f'{get_float(pcb, MEASURMENTS[0])}',
+                '\n'
+            ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
         print(f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
               f'  Current :: {writeread(pcb, MEASURMENTS[1])}' 
               f'  targetCurrent :: {targetCurrent}')
@@ -207,6 +228,10 @@ except:
     writeline(pcb, SINK_SET[1].format(0))
     writeline(pcb, SOUR_SET[0].format(V_SINK))
     writeline(pcb, DC_START[0])
+writeline(pcb, SOUR_SET[1].format(0))
+writeline(pcb, SINK_SET[1].format(0))
+writeline(pcb, SOUR_SET[0].format(V_SINK))
+writeline(pcb, DC_START[0])
 #! Make a plot
 #! Add IR model
 #! Modefy alrorith until it reaches

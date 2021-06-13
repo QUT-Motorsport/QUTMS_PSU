@@ -10,4 +10,9 @@ textLog.txt
 # Data for demonstration
 demo
 Models
+jsonLog2.json
+
+# SYmblic links
 AutoFeedBack.py
+Data
+py_modules

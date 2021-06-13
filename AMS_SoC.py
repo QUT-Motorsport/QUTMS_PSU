@@ -12,7 +12,7 @@ import time
 import pandas as pd
 import numpy as np
 
-# Plotting animated
+# Plotting animated 
 import matplotlib as mpl  # Plot functionality
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -20,13 +20,15 @@ import matplotlib.animation as animation
 
 # Machine learning processing
 import tensorflow as tf
+from tensorflow.python.eager.context import device
 import tensorflow_addons as tfa
+import tflite_runtime.interpreter as tflite
 
 from scipy import integrate # integration with trapizoid
 
 from AutoFeedBack import AutoFeedBack
 
-import datetime
+from datetime import datetime
 import getpass
 
 mpl.rcParams['figure.figsize'] = (32, 16)
@@ -66,7 +68,8 @@ tf.keras.backend.set_floatx('float32')
 #     return BMSv_DataFrames, BMSt_DataFrames, current
 
 def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
-        gSoC : np.ndarray, cell : int) -> tuple[np.float32, np.float32]:
+        gSoC : np.ndarray, cell : int, interpreter=None
+        ) -> tuple[np.float32, np.float32]:
     """ Determine state of charge based on 3-4 feature model
     """
     test_data : np.ndarray = np.zeros(shape=(500,4), dtype=np.float32)
@@ -80,14 +83,27 @@ def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
                         ),
                     STD
                 )
+    # Standad LSTM
     VIT_charge = model.predict(np.expand_dims(test_data[:,:3], axis=0),
                             batch_size=1)[0][0]
     
     test_data[:,3] = gSoC[:,cell]
+    # Custom LSTM
     VITpSoC_charge = VITpSOC.predict(np.expand_dims(test_data[:,:], axis=0),
                             batch_size=1)[0]
-    return VIT_charge, VITpSoC_charge
-
+    if(interpreter):
+        # TFLite
+        interpreter.set_tensor(
+                interpreter.get_input_details()['index'],
+                np.expand_dims(test_data[:,:3], axis=0)
+            )
+        interpreter.invoke()
+        VITLite_charge = interpreter.get_tensor(
+                interpreter.get_output_details()[0]['index']
+            )
+        return VIT_charge, VITpSoC_charge, VITLite_charge
+    else:
+        return VIT_charge, VITpSoC_charge, 0.0
 def ccSoC(current   : pd.Series,
           time_s    : pd.Series,
           n_capacity: float = 2.5 ) -> pd.Series:
@@ -124,12 +140,12 @@ if __name__ == '__main__':
 
     labels_v = ['cell-1','cell-2','cell-3','cell-4','cell-5','cell-6','cell-7','cell-8','cell-9','cell-10']
     labels_t = ['CC-1','CC-2','CC-3','CC-4','CC-5','CC-6','CC-7','CC-8','CC-9','CC-10','CC-11','CC-12']
+    v_shape : int = 6
+    h_shape : int = 6
+
     fig = plt.figure(num = 1, figsize=(32,16))
     fig.suptitle("AMS here                          CC && SoC w/ VIT  && SoC w/ VITpSoC                   AMS here",
                 fontsize=12)
-    
-    v_shape : int = 6
-    h_shape : int = 6
     # SoC w/ VIT bar
     ax0  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 2), colspan=1)
     ax1  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 1), colspan=1)
@@ -188,6 +204,7 @@ if __name__ == '__main__':
                     )
             )
         id+=1
+    
     linesSoCp = []
     id = 0
     for ax in axsSoCp:
@@ -216,6 +233,7 @@ if __name__ == '__main__':
                     )
             )
         id+=1
+    
     linesSoCplusp = []
     id = 0
     for ax in axsSoCplusp:
@@ -248,6 +266,8 @@ if __name__ == '__main__':
             )
         ax.legend(labels_t, loc='center left')
         id+=1
+    
+    # Total provided current
     linesCurrent = []
     ax30.grid(b=True, axis='both', linestyle='-', linewidth=1)
     ax30.set_title(f'Current applied')
@@ -261,8 +281,8 @@ if __name__ == '__main__':
 # %%
     try:
         model : tf.keras.models.Sequential = tf.keras.models.load_model(
-                # filepath='Models/VIT', compile=False,
-                filepath=f'/mnt/WORK/QUT/TF/Battery_SoCv4/Models/Chemali2017/FUDS-models/48', compile=False,
+                filepath='Models/VIT', compile=False,
+                # filepath=f'/mnt/WORK/QUT/TF/Battery_SoCv4/Models/Chemali2017/FUDS-models/48', compile=False,
                 custom_objects={"RSquare": tfa.metrics.RSquare}
             )
         print('VIT model loaded')
@@ -271,6 +291,15 @@ if __name__ == '__main__':
             )
         VITpSOC.load_weights('Models/VITpSoC/12')
         print('VITpSoC model loaded')
+        model_file  : str ='Models/Model-№1-FUDS-48.tflite'
+        model_file, *device = model_file.split('@')
+        interpreter = tflite.Interpreter(
+                model_path=model_file,
+                experimental_delegates=[
+                    tflite.load_delegate('libedgetpu.so.1', {'device': device[0]} if device else {})
+                ]
+            )
+        interpreter.allocate_tensors()
     except:
         print('One of the models failed to load.')
 
@@ -287,21 +316,26 @@ if __name__ == '__main__':
     tick = time.perf_counter()
     def animate(self):
         global i
-        TotI : pd.DataFrame = pd.read_csv(
-                f'demo/current.csv',
-                # skiprows=11000
-            ).tail(2000+i)[:2000]/18
+        # TotI : pd.DataFrame = pd.read_csv(
+        #         f'demo/current.csv',
+        #         # skiprows=11000
+        #     ).tail(2000+i)[:2000]/18
+        TotI = pd.read_csv(f'{output_loc}Current.csv').tail(500)
         for bms in range(0, len(linesSoCb)):
-            BMSv : pd.DataFrame = pd.read_csv(
-                    f'demo/voltages/CANid_{bms}.csv',
-                    # skiprows=10000
-                ).tail(2000+i)[:2000]
-            BMSt : pd.DataFrame = pd.read_csv(
-                    f'demo/temperatures/CANid_{bms}.csv',
-                    # skiprows=6000
-                ).tail(2000+i)[:500]
+            # BMSv : pd.DataFrame = pd.read_csv(
+            #         f'demo/voltages/CANid_{bms}.csv',
+            #         # skiprows=10000
+            #     ).tail(2000+i)[:2000]
+            # BMSt : pd.DataFrame = pd.read_csv(
+            #         f'demo/temperatures/CANid_{bms}.csv',
+            #         # skiprows=6000
+            #     ).tail(2000+i)[:500]
+            BMSv = pd.read_csv(f'{output_loc}Voltages/CANid_{bms}.csv').tail(60)
+            # BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1)
+            BMSt = pd.read_csv(f'{output_loc}Temperatures/CANid_{bms}.csv').tail(120)
+        
             for cell in range(0,len(linesSoCb[bms])):
-                VIT, VITpSoC = SoC(BMSv, TotI, BMSt, pSoC[bms], cell)
+                VIT, VITpSoC, lite = SoC(BMSv, TotI, BMSt, pSoC[bms], cell, interpreter)
                 #?  SoC plots
                 #* Bar plot SoC
                 linesSoCb[bms][cell].set_height(
