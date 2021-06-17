@@ -97,6 +97,8 @@ if __name__ == '__main__':
         while(1):
             while ser.inWaiting():
                 data = s.readline()
+                with open(f'{output_loc}/jsonLog.csv', 'a') as f:
+                    f.write(data)
                 # data = jlfid.readline()
                 # while(data):
                 if(data[:-2] == str(0x69FF69FE)):
@@ -139,8 +141,8 @@ if __name__ == '__main__':
 
                     except:
                         print(data)
-
-                    # data = jlfid.readline()
+            
+                # data = jlfid.readline()
                 # time.sleep(1)
                 # print("Data out")
     except KeyboardInterrupt:

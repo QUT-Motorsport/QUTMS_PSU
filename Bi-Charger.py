@@ -236,25 +236,68 @@ writeline(pcb, DC_START[0])
 #! Add IR model
 #! Modefy alrorith until it reaches
 # %%
-targetCurrent = 3.6 # 2.5*18 #! Balance current: 20-> 3.6A
-# 3.6 * 10 = 36, 36*2 = 72
-writeline(pcb, SOUR_SET[1].format(targetCurrent))
-writeline(pcb, SINK_SET[1].format(0))
-writeline(pcb, SOUR_SET[0].format(V_SOUR))
-writeline(pcb, DC_START[1])
-tic = perf_counter()
+output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
+header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
+if not os.path.exists(output_loc+'Current.csv'):
+    print('First time, making dirs')
+    with open(output_loc+'Current.csv', 'w+') as f:
+        f.write(','.join(header_voltage))
+else:
+    print('Directories exists')
+
+# writeline(pcb, SOUR_SET[1].format(0))
+# writeline(pcb, SINK_SET[1].format(0))
+# writeline(pcb, DC_START[1])
+
+# writeline(pcb, SOUR_SET[1].format(45))
+# writeline(pcb, SOUR_SET[0].format(V_SOUR))
+# writeline(pcb, SINK_SET[1].format(0))
+
 try:
     while(1):
-        print(f'Time charging: {perf_counter()-tic}'
-            f'  Voltage :: {writeread(pcb, MEASURMENTS[0])}'
-            f'  Current :: {writeread(pcb, MEASURMENTS[1])}'
-            f'  delay - 5')
-        time.sleep(5)
+        record = [
+                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                f'{get_float(pcb, MEASURMENTS[1])}',
+                f'{get_float(pcb, MEASURMENTS[0])}',
+                '\n'
+            ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
+        print(f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+              f'  Current :: {writeread(pcb, MEASURMENTS[1])}' 
+              f'  targetCurrent :: {45}')
+        
+        time.sleep(1)
 except:
     writeline(pcb, SOUR_SET[1].format(0))
     writeline(pcb, SINK_SET[1].format(0))
     writeline(pcb, SOUR_SET[0].format(V_SINK))
-    writeline(pcb, DC_START[0])
+    # writeline(pcb, DC_START[0])
+writeline(pcb, SOUR_SET[1].format(0))
+writeline(pcb, SINK_SET[1].format(0))
+writeline(pcb, SOUR_SET[0].format(V_SINK))
+writeline(pcb, DC_START[0])
+# %%
+# targetCurrent = 3.6 # 2.5*18 #! Balance current: 20-> 3.6A
+# # 3.6 * 10 = 36, 36*2 = 72
+# writeline(pcb, SOUR_SET[1].format(targetCurrent))
+# writeline(pcb, SINK_SET[1].format(0))
+# writeline(pcb, SOUR_SET[0].format(V_SOUR))
+# writeline(pcb, DC_START[1])
+# tic = perf_counter()
+# try:
+#     while(1):
+#         print(f'Time charging: {perf_counter()-tic}'
+#             f'  Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+#             f'  Current :: {writeread(pcb, MEASURMENTS[1])}'
+#             f'  delay - 5')
+#         time.sleep(5)
+# except:
+#     writeline(pcb, SOUR_SET[1].format(0))
+#     writeline(pcb, SINK_SET[1].format(0))
+#     writeline(pcb, SOUR_SET[0].format(V_SINK))
+#     writeline(pcb, DC_START[0])
 # %%
 #TODO: Beatiful plot
 #?float(str(value).split(' ')[1])

@@ -14,8 +14,8 @@ mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
 
-output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
-
+# output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
+output_loc  : str = '/home/xana/tmp/June11/'
 # %%
 # Current data and plot
 BMSCurrent  : pd.DataFrame = pd.read_csv(

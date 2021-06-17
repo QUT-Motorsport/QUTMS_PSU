@@ -131,7 +131,7 @@ if __name__ == '__main__':
     for ax in axsBb:
         ax.grid(b=True, axis='y', linestyle='-', linewidth=2)
         ax.set_title(f'CANid {id}')
-        ax.set_ylim([-0.2, 0.2])
+        ax.set_ylim([3.25, 3.55])
         linesBb.append(
                 ax.bar(range(10),
                        [0.0]*10,
@@ -170,9 +170,12 @@ if __name__ == '__main__':
                         BMSv.iloc[:,cell+2].to_numpy()
                     )
                 #* Balance Bar
+                #! Make a shift based on average of all 6 bricks
+                linesBb[bms][cell].set_y(BMSb.iloc[-1, 2])
                 linesBb[bms][cell].set_height(
-                    BMSv.iloc[-1, cell+2] - BMSb.iloc[-1, 2]
+                    (BMSv.iloc[-1, cell+2] - BMSb.iloc[-1, 2])
                     )
+                linesBb[bms][cell].set
             for sns in range(0,len(linesTp[bms])):
                 #* Tempearature Bar
                 linesTp[bms][sns].set_xdata(

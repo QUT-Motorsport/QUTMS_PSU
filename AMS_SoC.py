@@ -73,9 +73,9 @@ def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
     """ Determine state of charge based on 3-4 feature model
     """
     test_data : np.ndarray = np.zeros(shape=(500,4), dtype=np.float32)
-    test_data[:, 0] =-I.iloc[::fs,0].to_numpy()
-    test_data[:, 1] = V.iloc[::fs,cell].to_numpy()
-    test_data[:, 2] = T.iloc[::,cell].to_numpy()
+    test_data[:, 0] = I.iloc[::,1].to_numpy()
+    test_data[:, 1] = V.iloc[::fs,cell+2].to_numpy()
+    test_data[:, 2] = T.iloc[::,cell+2].to_numpy()
     test_data[:,:3]= np.divide(
                     np.subtract(
                             np.copy(a=test_data[:,:3]),
@@ -321,7 +321,8 @@ if __name__ == '__main__':
         #         # skiprows=11000
         #     ).tail(2000+i)[:2000]/18
         TotI = pd.read_csv(f'{output_loc}Current.csv').tail(500)
-        for bms in range(0, len(linesSoCb)):
+        #for bms in range(0, len(linesSoCb)):
+        for bms in [1, 2]:
             # BMSv : pd.DataFrame = pd.read_csv(
             #         f'demo/voltages/CANid_{bms}.csv',
             #         # skiprows=10000
@@ -330,12 +331,12 @@ if __name__ == '__main__':
             #         f'demo/temperatures/CANid_{bms}.csv',
             #         # skiprows=6000
             #     ).tail(2000+i)[:500]
-            BMSv = pd.read_csv(f'{output_loc}Voltages/CANid_{bms}.csv').tail(60)
+            BMSv = pd.read_csv(f'{output_loc}Voltages/CANid_{bms}.csv').tail(2000)
             # BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1)
-            BMSt = pd.read_csv(f'{output_loc}Temperatures/CANid_{bms}.csv').tail(120)
+            BMSt = pd.read_csv(f'{output_loc}Temperatures/CANid_{bms}.csv').tail(500)
         
             for cell in range(0,len(linesSoCb[bms])):
-                VIT, VITpSoC, lite = SoC(BMSv, TotI, BMSt, pSoC[bms], cell, interpreter)
+                VIT, VITpSoC, lite = SoC(BMSv, TotI, BMSt, pSoC[bms], cell, None)
                 #?  SoC plots
                 #* Bar plot SoC
                 linesSoCb[bms][cell].set_height(
@@ -371,6 +372,10 @@ if __name__ == '__main__':
                 # print(cSoC[bms][:,cell].shape)
                 # print(pSoC[bms][:,cell].shape)
             #?  Coulumb Counter
+            start_cycling = pd.to_datetime(TotI.iloc[0,0][:-4])
+            dT=(pd.to_datetime(pd.to_datetime(TotI.iloc[-1,0][:-4])) \
+                - start_cycling)
+
             newCC = CC[-1,bms] + ccSoC(current=TotI[-i:].to_numpy()[0]*6, time_s=np.expand_dims(i, axis=0))
             CC[:,bms] = np.concatenate(
                         (CC[:,bms], newCC),
@@ -381,7 +386,7 @@ if __name__ == '__main__':
                 )
         #?  Current plot
         linesCurrent[0][0].set_ydata(
-                TotI.to_numpy()[-360-i:-i]*18
+                TotI.iloc[-360:,1].to_numpy()*18
             )
         tuples_return = tuple(linesCurrent[0])
         for bms in range(0, len(linesSoCb)):
