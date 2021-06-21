@@ -8,14 +8,18 @@ import matplotlib as mpl  # Plot functionality
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+import tflite_runtime.interpreter as tflite
+
+from scipy import integrate # integration with trapizoid
+
 mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
 
-# output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
-output_loc  : str = '/home/xana/tmp/June11/'
+output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
+# output_loc  : str = '/home/xana/tmp/June11/'
 # %%
 # Current data and plot
 BMSCurrent  : pd.DataFrame = pd.read_csv(
@@ -157,12 +161,24 @@ fig.show()
 #!The Coral or TPU solution has to be the next goal for the QUEV-4 and if milestone
 #!of our successes is going to be submitted - this is the prove that we need to
 #!continue to push research to stay close to the market grow.
+# %%
+# Determine initial voltages before the discharge
+BMSsFUDS_prevV = []
+BMSsFUDS_prevT = []
+for i in IDs:
+    BMSsFUDS_prevV.append(
+            BMSsVoltages[i][ BMSsVoltages[i]['Date_Time'] <= BMSCurrent['Date_Time'].iloc[500] ].iloc[-2500:,:].copy()
+        )
+
+    BMSsFUDS_prevT.append(
+            BMSsTemperatures[i][ BMSsTemperatures[i]['Date_Time'] <= BMSCurrent['Date_Time'].iloc[500] ].iloc[-2000:,:].copy()
+        )
 
 # %%
 # Running Machine learning
 import tensorflow as tf
 import tensorflow_addons as tfa
-# import tflite_runtime.interpreter as tflite
+import tflite_runtime.interpreter as tflite
 
 from AutoFeedBack import AutoFeedBack
 from tqdm import trange
@@ -197,21 +213,28 @@ try:
         )
     VITpSOC.load_weights('Models/VITpSoC/12')
     print('VITpSoC model loaded')
-    # model_file  : str ='Models/Model-№1-FUDS-48.tflite'
-    # model_file, *device = model_file.split('@')
-    # interpreter = tflite.Interpreter(
-    #         model_path=model_file,
-    #         experimental_delegates=[
-    #             tflite.load_delegate('libedgetpu.so.1', {'device': device[0]} if device else {})
-    #         ]
-    #     )
-    # interpreter.allocate_tensors()
 except:
     print('One of the models failed to load.')
+
+try:
+    model_file  : str ='Models/Model-№1-FUDS-48.tflite'
+    model_file, *device = model_file.split('@')
+    interpreter = tflite.Interpreter(
+            model_path=model_file,
+            experimental_delegates=[
+                tflite.load_delegate('libedgetpu.so.1', {'device': device[0]} if device else {})
+            ]
+        )
+    interpreter.allocate_tensors()
+except:
+    print('Failed to load Lite model. Verefy connection between TPU and PC')
 
 MEAN = np.array([-0.35640615,  3.2060466 , 30.660755  ], dtype=np.float32)
 STD  = np.array([ 0.9579658 ,  0.22374259, 13.653275  ], dtype=np.float32)
 
+MEAN2= np.array([-0.35726398,  3.198611  , 26.348543 , 0 ], dtype=np.float32)
+STD2 = np.array([ 1.0102334 ,  0.2357838 ,  4.8134885, 1 ], dtype=np.float32)
+# %%
 def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
         gSoC : np.ndarray
         ) -> tuple[np.float32, np.float32]:
@@ -221,49 +244,60 @@ def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
     test_data[:, :, 0] = I
     test_data[:, :, 1] = V
     test_data[:, :, 2] = T
-    test_data[:, :,:3]= np.divide(
-                    np.subtract(
-                            np.copy(a=test_data[:, :,:3]),
-                            MEAN
-                        ),
-                    STD
-                )
-    # Standad LSTM
-    VIT_charge = VIT.predict(test_data[:,:,:3], batch_size=1)[0][0]
-    
     test_data[:, :, 3] = gSoC
+
+    # Standad LSTM
+    VIT_charge = VIT.predict(x=np.divide(
+                                    np.subtract(
+                                            np.copy(a=test_data[:, :,:3]),
+                                            MEAN
+                                        ),
+                                    STD
+                                ), batch_size=1)[0][0]
+    
     # # Custom LSTM
-    VITpSoC_charge = VITpSOC.predict(test_data[:,:,:], batch_size=1)[0]
-    # if(interpreter):
-    #     # TFLite
-    #     interpreter.set_tensor(
-    #             interpreter.get_input_details()['index'],
-    #             np.expand_dims(test_data[:,:3], axis=0)
-    #         )
-    #     interpreter.invoke()
-    #     VITLite_charge = interpreter.get_tensor(
-    #             interpreter.get_output_details()[0]['index']
-    #         )
-    #     return VIT_charge, VITpSoC_charge, VITLite_charge
-    # else:
-    return VIT_charge, VITpSoC_charge, 0.0
+    # VITpSoC_charge = VITpSOC.predict(x=np.divide(
+    #                                 np.subtract(
+    #                                         np.copy(a=test_data[:, :,:3]),
+    #                                         MEAN2
+    #                                     ),
+    #                                 STD2
+    #                             ), batch_size=1)[0]
+    # TFLite
+    interpreter.set_tensor(
+            tensor_index=interpreter.get_input_details()[0]['index'],
+            value=np.divide(
+                        np.subtract(
+                                np.copy(a=test_data[:, :,:3]),
+                                MEAN
+                            ),
+                        STD
+                    )
+        )
+    interpreter.invoke()
+    VITLite_charge = interpreter.get_tensor(
+            interpreter.get_output_details()[0]['index']
+        )
+    
+    return VIT_charge, 0.0, VITLite_charge
+    
 
 #! Cycking time based on amount of current samples
 period = BMSCurrent.shape[0]
 BMS_Volts = np.zeros(shape=(1,10), dtype=np.float32)
-for i in range(0, int(np.round(BMSsFUDS_V[1]['Cycle_Time(s)']).iloc[-1])):
+for i in range(0, int(np.round(BMSsFUDS_V[2]['Cycle_Time(s)']).iloc[-1])):
     BMS_Volts = np.append(BMS_Volts,
-            np.expand_dims(BMSsFUDS_V[1][(np.round(BMSsFUDS_V[1]['Cycle_Time(s)']) == i)].iloc[0, 2:12].to_numpy(), axis=0),
+            np.expand_dims(BMSsFUDS_V[2][(np.round(BMSsFUDS_V[2]['Cycle_Time(s)']) == i)].iloc[0, 2:12].to_numpy(), axis=0),
             axis=0
 
         )
 BMS_Volts = BMS_Volts[1:period+1,:]
 
 BMS_Temps = np.zeros(shape=(1,14), dtype=np.float32)
-for i in range(0, int(np.round(BMSsFUDS_T[1]['Cycle_Time(s)']).iloc[-1])):
+for i in range(0, int(np.round(BMSsFUDS_T[2]['Cycle_Time(s)']).iloc[-1])):
     try:
         BMS_Temps = np.append(BMS_Temps,
-                np.expand_dims(BMSsFUDS_T[1][(np.round(BMSsFUDS_T[1]['Cycle_Time(s)']) == i)].iloc[0, 2:16].to_numpy(), axis=0),
+                np.expand_dims(BMSsFUDS_T[2][(np.round(BMSsFUDS_T[2]['Cycle_Time(s)']) == i)].iloc[0, 2:16].to_numpy(), axis=0),
                 axis=0
 
             )
@@ -274,23 +308,147 @@ for i in range(0, int(np.round(BMSsFUDS_T[1]['Cycle_Time(s)']).iloc[-1])):
                 axis=0
             )
 BMS_Temps = BMS_Temps[1:period+1,:]
-BMS_Current = (BMSCurrent['Current(A)']/18).to_numpy()
+BMS_Current = np.append(np.zeros(shape=(500,), dtype=np.float32),
+                        (BMSCurrent['Current(A)']/18).to_numpy())
 print(f'Data Shapes: Cr-{BMSCurrent.shape}, Vt-{BMS_Volts.shape}, Tp-{BMS_Temps.shape}')
 #! 3 Hours of data to process on sincgle cell. That will take a while
 # %%
-charge = np.zeros(shape=(period-500, 10), dtype=np.float32)
-chargeP = np.zeros(shape=(period, 10), dtype=np.float32)
-chargeP[:500,:] = 0.8
-for cell in range(0, 1):
-    for i in trange(0,period-500):
-        charge[i,cell], chargeP[501+i,cell], _ = SoC(
-                BMS_Volts[i:500+i,cell],
-                BMS_Current[i:500+i],
-                BMS_Temps[i:500+i,cell],
-                chargeP[i:500+i,cell]
-            )
+# Determine the initial set of charges
+#* Current is zero
+#* BMSsFUDS_prevV
+#* BMSsFUDS_prevT
+test_data : np.ndarray = np.zeros(shape=(1, 500, 3), dtype=np.float32)
+chargeP = np.zeros(shape=(len(IDs), period+500, 10), dtype=np.float32)
+chargeC = np.zeros(shape=(len(IDs), period, 10), dtype=np.float32)
+j_list = 0
+for bms in IDs:
+    print(f'BMS - {bms}', flush=True)
+    for cell in range(0, 10):
+        print(f'Cell - {cell}', flush=True)
+        for i in trange(0,500):
+            test_data[:, :, 1] = BMSsFUDS_prevV[j_list].iloc[i:2000+i:4, 2+cell].to_numpy()
+            test_data[:, :, 2] = BMSsFUDS_prevT[j_list].iloc[i:1500+i:3, 2+cell].to_numpy()
+            chargeP[j_list, i, cell] = np.round(VIT.predict(x=np.divide(
+                                    np.subtract(
+                                            np.copy(a=test_data[:, :, :]),
+                                            MEAN
+                                        ),
+                                    STD
+                                ), batch_size=1)[0][0], decimals=2)
+    j_list +=1
+BMS_Volts = np.append(BMSsFUDS_prevV[1].iloc[-2000::4, 2:12].to_numpy(),
+                        BMS_Volts, axis=0
+                    )
+BMS_Temps = np.append(BMSsFUDS_prevT[1].iloc[-1500::3, 2:16].to_numpy(),
+                        BMS_Temps, axis=0
+                    )
+# %%
+# charge = np.zeros(shape=(period-500, 10), dtype=np.float32)
+# chargeT = np.zeros(shape=(period-500, 10), dtype=np.float32)
+test_data : np.ndarray = np.zeros(shape=(1, 500, 4), dtype=np.float32)
+samples = BMS_Current[BMS_Volts[::,cell] >= 2.0].shape[0]
+for cell in range(1, 10):
+    for i in trange(0,samples-500):
+        # charge[i,cell], chargeP[501+i,cell], chargeT[i,cell], = SoC(
+        #         BMS_Volts[i:500+i,cell],
+        #         BMS_Current[i:500+i],
+        #         BMS_Temps[i:500+i,cell],
+        #         chargeP[i:500+i,cell]
+        #     )
+        test_data[:, :, 0] = BMS_Current[BMS_Volts[::,cell] >= 2.0][i:500+i]
+        test_data[:, :, 1] = BMS_Volts[BMS_Volts[::,cell] >= 2.0][i:500+i:,cell]
+        test_data[:, :, 2] = BMS_Temps[BMS_Volts[::,cell] >= 2.0][i:500+i:,cell]
+        test_data[:, :, 3] = chargeP[0, i:500+i,cell]
+        chargeP[0, 500+i, cell] = np.round(VITpSOC.predict(x=np.divide(
+                                np.subtract(
+                                        np.copy(a=test_data[:, :, :]),
+                                        MEAN2
+                                    ),
+                                STD2
+                            ), batch_size=1)[0], decimals=2)
+        chargeC[0, i, cell] = np.round(VIT.predict(x=np.divide(
+                                np.subtract(
+                                        np.copy(a=test_data[:, :, :3]),
+                                        MEAN
+                                    ),
+                                STD
+                            ), batch_size=1)[0][0], decimals=2)
+# plt.plot(chargeP[:,5])
+# %%
+# s0 = 100;               % Initial SOC estimate
+# Q = 45;                 % battery Capacity (Ah)
+# eta = 1/(3600*Q);       % Coulombic Efficiency
+# i = batteryData.i;      % Load current Data
+# v = batteryData.vt;     % Load simulated battery voltage
+# dataSize = length(i);   % dataSize will be sued a lot
 
-plt.plot(chargeP[:,5])
+# SOCcc = zeros(1,dataSize); % Storage vector for SOC estimates 
+# t = (1:dataSize);        % Make time vector
+
+# for n = 1:dataSize-1
+#     SOCcc(n) = s0 -(eta *trapz(t(n:n+1),i(n:n+1)))*100;
+#     s0 = SOCcc(n);
+# end  
+df_BMSCurrent = pd.read_csv('FUDS_Current.csv')
+SoCnorm = pd.read_csv('Data/BMS_data/June11/BMS1_chargeC.csv').iloc[:,1:]
+SoCplus = pd.read_csv('Data/BMS_data/June11/BMS1_chargeP.csv').iloc[:,1:]
+SoCcc = np.zeros(shape=(chargeP[0,499,:].shape[0], df_BMSCurrent.shape[0]))
+SoCcc[:,0] = chargeP[0,499,:]#+0.25
+
+fig, axs = plt.subplots(2,1)
+axs[0].plot(chargeP[0,:499,:])
+axs[0].set_title('Initial charge over BMS 1', fontsize=32)
+axs[0].tick_params(axis='both', labelsize=24)
+axs[0].set_ylabel("Charge(%)", fontsize=32)
+axs[0].set_xlabel("Time(s)", fontsize=32)
+axs[0].set_ylim(0,1.0)
+axs[1].set_title('Steady State Voltages over BMS 1', fontsize=32)
+axs[1].plot(BMSsFUDS_prevV[0].iloc[i:2000+i:4, 2:12].to_numpy())
+axs[1].tick_params(axis='both', labelsize=24)
+axs[1].set_ylabel("Voltage(V)", fontsize=32)
+axs[1].set_xlabel("Time(s)", fontsize=32)
+axs[1].set_ylim(3.1,3.4)
+
+def ccSoC(current   : pd.Series,
+          time_s    : pd.Series,
+          n_capacity: float = 2.5 ) -> pd.Series:
+    """ Return SoC based on Couloumb Counter.
+    @ 25deg I said it was 2.5
+
+    Args:
+        chargeData (pd.Series): Charge Data Series
+        discargeData (pd.Series): Discharge Data Series
+
+    Raises:
+        ValueError: If any of data has negative
+        ValueError: If the data trend is negative. (end-beg)<0.
+
+    Returns:
+        pd.Series: Ceil data with 2 decimal places only.
+    """
+    return (1/(3600*n_capacity))*(
+            integrate.cumtrapz(
+                    y=current, x=time_s,
+                    dx=1, axis=-1, initial=0
+                )
+        )
+for bms in range(0,10):
+    for n in range(1, df_BMSCurrent.shape[0]):
+        SoCcc[bms, n] = SoCcc[bms, n-1] + ccSoC(df_BMSCurrent['Current(A)'].iloc[n-1:n+1].to_numpy()/18,
+                            df_BMSCurrent['Cycle_Time(s)'].iloc[n-1:n+1].to_numpy())[1]
+num = 10
+fig, axs = plt.subplots(num, 1, figsize=(24,96))
+for i in range(num):
+    axs[i].plot(np.arange(SoCcc.shape[1]), SoCcc[i,:], label='CC')
+    axs[i].plot(np.arange(SoCcc.shape[1]), SoCnorm.iloc[:,i], label='Published')
+    axs[i].plot(np.arange(SoCcc.shape[1]), SoCplus.iloc[500:,i], label='QUTMS')
+    axs[i].set_title(f'Coulub Counting over Cell {i}', fontsize=32)
+    axs[i].tick_params(axis='both', labelsize=24)
+    axs[i].set_ylabel("Charge(%)", fontsize=32)
+    axs[i].set_xlabel("Time(s)", fontsize=32)
+    axs[i].legend()
+# fig.savefig('ChargeTest.png', facecolor='white')
+# plt.plot(ccSoC(df_BMSCurrent['Current(A)']/18, df_BMSCurrent['Cycle_Time(s)']))
 # %%
 def smooth(y, box_pts: int) -> np.array:
     """ Smoothing data using numpy convolve. Based on the size of the
@@ -348,3 +506,44 @@ axs.set_xlabel("Time(s)", fontsize=32)
 axs.set_ylim(-5,105)
 fig.show()
 fig.savefig(output_loc+'CANid_1 Cell5-VITpSoC.png', facecolor='white', transparent=False)
+
+# %%
+# Timimg
+#? CPU - 0.076 - 4x faster
+#? GPU - 0.057 - 6x faster
+#? TPU - 0.305
+# import time
+# tic = time.perf_counter()
+# test_data : np.ndarray = np.zeros(shape=(1, 500, 3), dtype=np.float32)
+# test_data[:, :, 0] = BMS_Current[i:500+i]
+# test_data[:, :, 1] = BMS_Volts[i:500+i,cell]
+# test_data[:, :, 2] = BMS_Temps[i:500+i,cell]
+# VIT.predict(x=np.divide(
+#                 np.subtract(
+#                         np.copy(a=test_data[:, :,:3]),
+#                         MEAN
+#                     ),
+#                 STD
+#             ), batch_size=1)
+# print(f'GPU model: {time.perf_counter()-tic}')
+
+# tic = time.perf_counter()
+# test_data : np.ndarray = np.zeros(shape=(1, 500, 3), dtype=np.float32)
+# test_data[:, :, 0] = BMS_Current[i:500+i]
+# test_data[:, :, 1] = BMS_Volts[i:500+i,cell]
+# test_data[:, :, 2] = BMS_Temps[i:500+i,cell]
+# interpreter.set_tensor(
+#         tensor_index=interpreter.get_input_details()[0]['index'],
+#         value=np.divide(
+#                     np.subtract(
+#                             np.copy(a=test_data[:, :,:3]),
+#                             MEAN
+#                         ),
+#                     STD
+#                 )
+#     )
+# interpreter.invoke()
+# interpreter.get_tensor(
+#         interpreter.get_output_details()[0]['index']
+#     )
+# print(f'TPU model: {time.perf_counter()-tic}')
