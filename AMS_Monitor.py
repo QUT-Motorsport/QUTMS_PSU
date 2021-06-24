@@ -79,13 +79,13 @@ if __name__ == '__main__':
         print('First time, making dirs')
         os.makedirs(output_loc)
         
-        os.makedirs(output_loc+'Voltages')
-        os.makedirs(output_loc+'Temperatures')
+        os.makedirs(output_loc+'VoltageInfo')
+        os.makedirs(output_loc+'TemperatureInfo')
         os.makedirs(output_loc+'BalanceInfo')
         for i in range(0,N_BMSs):
-            with open(output_loc+'Voltages/'+f'CANid_{i}.csv', 'w+') as f:
+            with open(output_loc+'VoltageInfo/'+f'CANid_{i}.csv', 'w+') as f:
                 f.write(','.join(header_voltage))
-            with open(output_loc+'Temperatures/'+f'CANid_{i}.csv', 'w+') as f:
+            with open(output_loc+'TemperatureInfo/'+f'CANid_{i}.csv', 'w+') as f:
                 f.write(','.join(header_temp))
             with open(output_loc+'BalanceInfo/'+f'CANid_{i}.csv', 'w+') as f:
                 f.write(','.join(header_balance))
@@ -93,62 +93,85 @@ if __name__ == '__main__':
         print('Directories exists')
 # %%
     on_sequence = str(0x69006901)
+    jsonlog = open(f'{output_loc}/jsonLog.txt', 'a')
     try:
         while(1):
             while ser.inWaiting():
                 data = s.readline()
-                with open(f'{output_loc}/jsonLog.csv', 'a') as f:
-                    f.write(data)
+                jsonlog.write(data)
                 # data = jlfid.readline()
                 # while(data):
-                if(data[:-2] == str(0x69FF69FE)):
-                    print('AMS charge check')
-                    ser.write(bytes(on_sequence, "ascii")) # "uint8"
-                else:
-                    # jlfid.write(data + ',')
-                    # record = pd.read_json(data)
-                    # data = record[record.keys()[0]]    # Gets entire record info
-                    # # data.index[2]   # Gets the name
-                    # # data['BMS']
-                    # # data['RT']      # Try getting them by seconds
-                    # # data[2]         # Gets the values
-                    # iType, values = list(json.loads(data.replace('},','}')).items())[0]
-                    try:
-                        iType, values = list(json.loads(data).items())[0]
-                        if(iType == 'BalanceInfo'):
-                            key = list(values.keys())[2]
-                            #TODO That part quite equivalent, see how can it be merged. Remove
-                            record = [
-                                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
-                                f'{values["RT"]}',
-                                f'{values["BalanceVoltage"]/1000}'
-                                ]
-                            # record += [f'{v}' for v in str(bin(values["BalanceState"]))[2:]]
-                            record += [f'{v}' for v in str(bin(values["BalanceState"]))[:2:-1]]
-                            record += '\n'
-                            with open(f'{output_loc}{iType}/CANid_{values["BMS"]}.csv', 'a') as f:
-                                f.write(','.join(record))
-                        else:
-                            key = list(values.keys())[2]
-                            record = [
-                                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
-                                f'{values["RT"]}'
-                                ]
-                            record += [f'{v}' for v in values[key]]
-                            record += '\n'
-                            with open(f'{output_loc}{key}/CANid_{values["BMS"]}.csv', 'a') as f:
-                                f.write(','.join(record))
+                # if(data[:-2] == str(0x69FF69FE)):
+                #     print('AMS charge check')
+                #     ser.write(bytes(on_sequence, "ascii")) # "uint8"
+                # else:
+                # jlfid.write(data + ',')
+                # record = pd.read_json(data)
+                # data = record[record.keys()[0]]    # Gets entire record info
+                # # data.index[2]   # Gets the name
+                # # data['BMS']
+                # # data['RT']      # Try getting them by seconds
+                # # data[2]         # Gets the values
+                # iType, values = list(json.loads(data.replace('},','}')).items())[0]
+                try:
+                    # print(data)
+                    iType, values = list(json.loads(data).items())[0]
+                    record = [
+                        f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                        f'{values["RT"]}',
+                        #f'{values["BalanceVoltage"]/1000}'
+                        ]
+                    if(iType == 'BalanceInfo'):
+                        record += [f'{values["BalanceVoltage"]/1000}']
+                        record += [f'{v}' if v != ' ' else '0' for v in format(values["BalanceState"], '10b')[::-1]]
+                    else:
+                        key = list(values.keys())[2]
+                        record += [f'{v}' for v in values[key]]
+                    record += '\n'
+                    with open(f'{output_loc}{iType}/CANid_{values["BMS"]}.csv', 'a') as f:
+                        f.write(','.join(record))
+                    # if(iType == 'BalanceInfo'):
+                    #     key = list(values.keys())[2]
+                    #     #TODO That part quite equivalent, see how can it be merged. Remove
+                    #     record = [
+                    #         f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                    #         f'{values["RT"]}',
+                    #         f'{values["BalanceVoltage"]/1000}'
+                    #         ]
+                    #     # record += [f'{v}' for v in str(bin(values["BalanceState"]))[2:]]
+                    #     record += [f'{v}' for v in str(bin(values["BalanceState"]))[:2:-1]]
+                    #     record += '\n'
+                    #     with open(f'{output_loc}{iType}/CANid_{values["BMS"]}.csv', 'a') as f:
+                    #         f.write(','.join(record))
+                    # else:
+                    #     key = list(values.keys())[2]
+                    #     record = [
+                    #         f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                    #         f'{values["RT"]}'
+                    #         ]
+                    #     record += [f'{v}' for v in values[key]]
+                    #     record += '\n'
+                    #     with open(f'{output_loc}{key}/CANid_{values["BMS"]}.csv', 'a') as f:
+                    #         f.write(','.join(record))
 
-                    except:
-                        print(data)
-            
+                except:
+                    # print(data)
+        #             break
+        # break
+                    pass
+        
                 # data = jlfid.readline()
                 # time.sleep(1)
                 # print("Data out")
     except KeyboardInterrupt:
         print('Exiting ...')
         # jlfid.close()
+        jsonlog.close()
         ser.close()
         # s.close()
-
+    except Exception as e:
+        print('Unhanled exception')
+        print(e)
+        jsonlog.close()
+        ser.close()
 # %%

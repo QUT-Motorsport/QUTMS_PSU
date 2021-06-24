@@ -106,7 +106,7 @@ if __name__ == '__main__':
                         [[0.0]*10]*60,
                     )
             )
-        ax.legend(labels_v, loc='center left')
+        # ax.legend(labels_v, loc='center left')
         id+=1
     
     linesTp = []
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
                 )
             )
-        ax.legend(labels_t, loc='center left')
+        # ax.legend(labels_t, loc='center left')
         id+=1
 
     linesBb = []
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     for ax in axsBb:
         ax.grid(b=True, axis='y', linestyle='-', linewidth=2)
         ax.set_title(f'CANid {id}')
-        ax.set_ylim([3.25, 3.55])
+        ax.set_ylim([3.35, 3.45])
         linesBb.append(
                 ax.bar(range(10),
                        [0.0]*10,
@@ -144,12 +144,14 @@ if __name__ == '__main__':
     tick = time.perf_counter()
     def animate(self):        
         # global i
+        sum_volts   : float = 0.0
         for bms in range(0, len(linesVp)):
             # BMSv_DataFrames.append(pd.read_csv(f'demo/voltages/CANid_{i}.csv'))
             # BMSt_DataFrames.append(pd.read_csv(f'demo/temperatures/CANid_{i}.csv'))
-            BMSv = pd.read_csv(f'{output_loc}Voltages/CANid_{bms}.csv').tail(60)
+            # print(bms)
+            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(60)
             BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1)
-            BMSt = pd.read_csv(f'{output_loc}Temperatures/CANid_{bms}.csv').tail(120)
+            BMSt = pd.read_csv(f'{output_loc}TemperatureInfo/CANid_{bms}.csv').tail(120)
         
             for cell in range(0,len(linesVp[bms])):
                 #* Voltage Bar
@@ -171,11 +173,12 @@ if __name__ == '__main__':
                     )
                 #* Balance Bar
                 #! Make a shift based on average of all 6 bricks
-                linesBb[bms][cell].set_y(BMSb.iloc[-1, 2])
-                linesBb[bms][cell].set_height(
-                    (BMSv.iloc[-1, cell+2] - BMSb.iloc[-1, 2])
-                    )
-                linesBb[bms][cell].set
+                # linesBb[bms][cell].set_y(BMSb.iloc[-1, 2])
+                # linesBb[bms][cell].set_height(
+                #     (BMSv.iloc[-1, cell+2] - BMSb.iloc[-1, 2])
+                #     )
+            sum_volts += float(BMSb.iloc[-1, 2])
+                
             for sns in range(0,len(linesTp[bms])):
                 #* Tempearature Bar
                 linesTp[bms][sns].set_xdata(
@@ -186,15 +189,24 @@ if __name__ == '__main__':
                     )
             # if(any(BMSb.iloc[-1, 3:-1])):
             #     print(f"BV for BMS:{bms} - {BMSb.iloc[-1, 2]}V")
+        #! Do another loop here to workout bar heights
+        avg_volts   : float = sum_volts / len(linesVp)
+        # print(avg_volts)
+        for bms in range(0, len(linesVp)):
+            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(60)
+            for cell in range(0, len(linesVp[bms])):
+                linesBb[bms][cell].set_y(avg_volts)
+                linesBb[bms][cell].set_height(
+                    (BMSv.iloc[-1, cell+2] - avg_volts)
+                    )
         tuples_return = tuple()
         for bms in range(0, len(linesVb)):
             tuples_return += tuple(linesVb[bms])
             tuples_return += tuple(linesVp[bms])
             tuples_return += tuple(linesBb[bms])
-        for sns in range(0,len(linesTp[bms])):
             tuples_return += tuple(linesTp[bms])
         # i += 1
-        print(time.perf_counter()-tick)
+        # print(time.perf_counter()-tick)
         return tuples_return
         # return tuple(linesVb[0]) + tuple(linesVb[1]) + tuple(linesVb[2]) +\
         #        tuple(linesVb[3]) + tuple(linesVb[4]) + tuple(linesVb[5]) +\
