@@ -8,6 +8,7 @@ import sys, glob
 import os, io
 from numpy.core.fromnumeric import repeat
 import serial as sr
+import numpy as np
 
 import json
 from datetime import datetime
@@ -92,7 +93,8 @@ if __name__ == '__main__':
     else:
         print('Directories exists')
 # %%
-    on_sequence = str(0x69006901)
+    # on_sequence = str(0x69006901)
+    on_sequence = '69006901' # ^M is the problem. On WIndows, it send us \r\n terminator. Workout the replacer
     jsonlog = open(f'{output_loc}/jsonLog.txt', 'a')
     try:
         while(1):
@@ -101,9 +103,6 @@ if __name__ == '__main__':
                 jsonlog.write(data)
                 # data = jlfid.readline()
                 # while(data):
-                # if(data[:-2] == str(0x69FF69FE)):
-                #     print('AMS charge check')
-                #     ser.write(bytes(on_sequence, "ascii")) # "uint8"
                 # else:
                 # jlfid.write(data + ',')
                 # record = pd.read_json(data)
@@ -158,8 +157,15 @@ if __name__ == '__main__':
                     # print(data)
         #             break
         # break
+                    if(data[:-2] == str(0x69FF69FE)):
+                        print('AMS charge check')
+                        # ser.write(bytes(on_sequence, "asci")) # "uint8"
+                        s.write(on_sequence)
+                        s.flush()
+                        # ser.write(0x69006901)
+                        # ser.write(np.array(0x69006901, dtype=np.uint8)[0])
+                        # ser.write(bytes('\r\n', "utf-8")) # "uint8"
                     pass
-        
                 # data = jlfid.readline()
                 # time.sleep(1)
                 # print("Data out")

@@ -46,43 +46,44 @@ if __name__ == '__main__':
     h_shape: int = 6
     
     fig = plt.figure(num = 0, figsize=(32,16))
-    fig.suptitle("AMS here                          VOLTAGES && TEMPERATURES                            AMS here",
+    fig.suptitle("Bar Volts, balancers, Volt plots, && Temperatures ",
                 fontsize=12)
     # Voltages Bars
-    ax0  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 2), colspan=1)
+    ax0  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 0), colspan=1)
     ax1  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 1), colspan=1)
-    ax2  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 0), colspan=1)
-    ax3  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 2), colspan=1)
-    ax4  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 1), colspan=1)
-    ax5  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 0), colspan=1)
+    ax2  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 2), colspan=1)
+    ax3  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 3), colspan=1)
+    ax4  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 4), colspan=1)
+    ax5  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 5), colspan=1)
     axsVb = [ax0, ax1, ax2, ax3, ax4, ax5]
     # Voltages Plots
-    ax6  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 5), colspan=1)
-    ax7  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 4), colspan=1)
-    ax8  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 3), colspan=1)
-    ax9  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 5), colspan=1)
-    ax10 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 4), colspan=1)
-    ax11 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 3), colspan=1)
+    ax6  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 0), colspan=1)
+    ax7  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 1), colspan=1)
+    ax8  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 2), colspan=1)
+    ax9  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 3), colspan=1)
+    ax10 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 4), colspan=1)
+    ax11 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 5), colspan=1)
     axsVp = [ax6, ax7, ax8, ax9, ax10, ax11]
     # Temperature Plot
-    ax12 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 0), colspan=1)
-    ax13 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 1), colspan=1)
-    ax14 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 2), colspan=1)
-    ax15 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 3), colspan=1)
-    ax16 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 4), colspan=1)
-    ax17 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 5), colspan=1)
+    ax12 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 0), colspan=1)
+    ax13 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 1), colspan=1)
+    ax14 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 2), colspan=1)
+    ax15 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 3), colspan=1)
+    ax16 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 4), colspan=1)
+    ax17 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 5), colspan=1)
     axsTp = [ax12, ax13, ax14, ax15, ax16, ax17]
     # BalanceVoltages Bars
-    ax18 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 0), colspan=1)
-    ax19 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 1), colspan=1)
-    ax20 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 2), colspan=1)
-    ax21 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 3), colspan=1)
-    ax22 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 4), colspan=1)
-    ax23 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 5), colspan=1)
+    ax18 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 0), colspan=1)
+    ax19 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 1), colspan=1)
+    ax20 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 2), colspan=1)
+    ax21 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 3), colspan=1)
+    ax22 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 4), colspan=1)
+    ax23 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 5), colspan=1)
     axsBb = [ax18, ax19, ax20, ax21, ax22, ax23]
 
     linesVb = []
     id = 0
+    p_period    :   int = 120
     for ax in axsVb:
         ax.grid(b=True, axis='y', linestyle='-', linewidth=2)
         ax.set_title(f'CANid {id}')
@@ -98,12 +99,12 @@ if __name__ == '__main__':
     id = 0
     for ax in axsVp:
         ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
-        ax.set_title(f'CANid {id}')
-        ax.set_ylim([2.8, 3.7])
-        ax.set_xlim([0, 60])
+        # ax.set_title(f'CANid {id}')
+        ax.set_ylim([2.9, 3.7])
+        ax.set_xlim([0, p_period])
         linesVp.append(
-                ax.plot(range(60),
-                        [[0.0]*10]*60,
+                ax.plot(range(p_period),
+                        [[0.0]*10]*p_period,
                     )
             )
         # ax.legend(labels_v, loc='center left')
@@ -113,7 +114,7 @@ if __name__ == '__main__':
     id = 0
     for ax in axsTp:
         ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
-        ax.set_title(f'CANid {id}')
+        # ax.set_title(f'CANid {id}')
         ax.set_ylim([15, 50])
         ax.set_xlim([0, 120])
         linesTp.append(
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     id = 0
     for ax in axsBb:
         ax.grid(b=True, axis='y', linestyle='-', linewidth=2)
-        ax.set_title(f'CANid {id}')
+        # ax.set_title(f'CANid {id}')
         ax.set_ylim([3.35, 3.45])
         linesBb.append(
                 ax.bar(range(10),
@@ -142,6 +143,7 @@ if __name__ == '__main__':
 # %%
     # i = 0
     tick = time.perf_counter()
+    fs_v    : int = 4
     def animate(self):        
         # global i
         sum_volts   : float = 0.0
@@ -149,9 +151,9 @@ if __name__ == '__main__':
             # BMSv_DataFrames.append(pd.read_csv(f'demo/voltages/CANid_{i}.csv'))
             # BMSt_DataFrames.append(pd.read_csv(f'demo/temperatures/CANid_{i}.csv'))
             # print(bms)
-            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(60)
-            BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1)
-            BMSt = pd.read_csv(f'{output_loc}TemperatureInfo/CANid_{bms}.csv').tail(120)
+            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(fs_v*p_period).iloc[::4,:]
+            BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1).iloc[:,:]
+            BMSt = pd.read_csv(f'{output_loc}TemperatureInfo/CANid_{bms}.csv').tail(120).iloc[:,:]
         
             for cell in range(0,len(linesVp[bms])):
                 #* Voltage Bar
@@ -193,7 +195,7 @@ if __name__ == '__main__':
         avg_volts   : float = sum_volts / len(linesVp)
         # print(avg_volts)
         for bms in range(0, len(linesVp)):
-            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(60)
+            BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(1)
             for cell in range(0, len(linesVp[bms])):
                 linesBb[bms][cell].set_y(avg_volts)
                 linesBb[bms][cell].set_height(
