@@ -18,14 +18,21 @@ import matplotlib.animation as animation
 
 from datetime import datetime
 import getpass
+from sys import platform
 
 mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
-output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
-# def get_demo_data():
+
+#! Choose the quick read/write location
+if (platform == 'win32'):
+    output_loc = (f'C:\\Users\\{getpass.getuser()}\\'
+                 f'tmp\\{datetime.now().strftime("%B%d")}\\')
+else:
+    output_loc = (f'/home/{getpass.getuser()}'
+                  f'/tmp/{datetime.now().strftime("%B%d")}/')# def get_demo_data():
 #     BMSv_DataFrames = []
 #     BMSt_DataFrames = []
 #     for i in range(0, 6):

@@ -11,12 +11,23 @@ import matplotlib as mpl  # Plot functionality
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-import time
+import time, getpass
 
+from datetime import datetime
 from time import perf_counter
+from sys import platform
 
 # sys.path.append(os.getcwd() + '/..')
-from py_modules.parse_excel import ParseExcelData
+if (platform == 'win32'):
+    from py_modulesWin.parse_excel import ParseExcelData
+    train_dir	  : str ='..\\Data\\A123_Matt_Val_2nd'
+    output_loc = (f'C:\\Users\\{getpass.getuser()}\\'
+                 f'tmp\\{datetime.now().strftime("%B%d")}\\')
+else:
+    from py_modules.parse_excel import ParseExcelData
+    train_dir	  : str ='Data/A123_Matt_Val_2nd'
+    output_loc = (f'/home/{getpass.getuser()}'
+                  f'/tmp/{datetime.now().strftime("%B%d")}/')
 
 from datetime import datetime
 import getpass
@@ -90,14 +101,17 @@ MEASURMENTS : list[str] = ['MEAS:VOLT:DC?\n',
 # %%
 # Get data for profiling
 columns = ['Test_Time(s)', 'Current(A)', 'Charge_Capacity(Ah)', 'Discharge_Capacity(Ah)']
-train_dir	  : str ='Data/A123_Matt_Val_2nd'
 tr_ls_df, _ = ParseExcelData(train_dir,
                                     #range(4 ,12), # DST
                                     range(22,25),   # FUDS
                                     columns)
 #! 1 hour 40 minuts should be good for testing
-step_time = (tr_ls_df[0]['Test_Time(s)'].iloc[2000:8000]-tr_ls_df[0]['Test_Time(s)'].iloc[2000]).to_numpy()
-current = (tr_ls_df[0]['Current(A)'].iloc[2000:8000]).to_numpy()
+step_time = (tr_ls_df[0]['Test_Time(s)'].iloc[:]-tr_ls_df[0]['Test_Time(s)'].iloc[0]).to_numpy() # 2000:8000 and 2000
+current = (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy()
+# current = np.append(current, (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy(), axis=0)
+# current = np.append(current, (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy(), axis=0)
+#! 3 times more
+
 # %%
 #? Socket transmit function
 terminator = bytes('\n', 'ascii')
@@ -130,7 +144,7 @@ PSB_IP      : str = '192.168.0.102'
 PSB_PORT    : str = 5025
 
 V_SOUR  : int = 72      # Volts charging
-V_SINK  : int = 62      # Volts depletion
+V_SINK  : int = 45      # Volts depletion
 
 I_SOUR  : float = 2.0   # Amps charging
 I_SINK  : float = 2.0   # Amps sinking
@@ -186,7 +200,6 @@ print(f'Time for Cap charge: {c_time}')
 # # input('Check VOltage and Current respinse...\n\nConnect battery.')
 # %%
 # input('Press any to proceed...')
-output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
 header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
 if not os.path.exists(output_loc+'Current.csv'):
     print('First time, making dirs')
@@ -199,8 +212,8 @@ writeline(pcb, SOUR_SET[1].format(0))
 writeline(pcb, SINK_SET[1].format(0))
 writeline(pcb, DC_START[1])
 try:
-    for i in range(0, len(current)):
-        targetCurrent = current[i]*20
+    for i in range(0, len(current)): #! CHange back to zero
+        targetCurrent = current[i]*40
         if(targetCurrent > 0 and targetCurrent < 200):
             writeline(pcb, SOUR_SET[1].format(targetCurrent))
             writeline(pcb, SOUR_SET[0].format(V_SOUR))
@@ -232,11 +245,12 @@ writeline(pcb, SOUR_SET[1].format(0))
 writeline(pcb, SINK_SET[1].format(0))
 writeline(pcb, SOUR_SET[0].format(V_SINK))
 writeline(pcb, DC_START[0])
+print("IT IS OVER!!!")
 #! Make a plot
 #! Add IR model
 #! Modefy alrorith until it reaches
+#!-90A - 5 minutes
 # %%
-output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
 header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
 if not os.path.exists(output_loc+'Current.csv'):
     print('First time, making dirs')
