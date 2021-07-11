@@ -20,7 +20,6 @@ import matplotlib.animation as animation
 
 # Machine learning processing
 import tensorflow as tf
-from tensorflow.python.eager.context import device
 import tensorflow_addons as tfa
 import tflite_runtime.interpreter as tflite
 
