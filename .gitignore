@@ -1,0 +1,24 @@
+# Pyhon cache
+__pycache__
+
+# VSCode settings ignore
+.vscode
+
+jsonLog.json
+textLog.txt
+
+# Data for demonstration
+demo
+Models
+jsonLog2.json
+test.py
+
+# SYmblic links
+AutoFeedBack.py
+Data
+DataWin
+py_modules
+py_modulesWin
+
+# Outputs
+*.gif

@@ -1,3 +1,4 @@
+%%
 close all; clear; clc; format shortG;
 % Ensure this script is started before the AMS is powered on, as it must be 
 % ready to respond to the AMS's charging check request
@@ -26,7 +27,7 @@ fprintf("Connected to serial port, awaiting AMS wakeup sequence...\n");
 fprintf("Press Stop Loop button on figure to terminate\n");
 % writematrix(["Runtime" "Voltage" "Temperature"],"AMS_Logs/log.csv");
 configureTerminator(s,"CR/LF");
-
+%%
 iter = 0;
 hold on;
 subplot(2, 1, 1);
@@ -92,6 +93,7 @@ while true
             % We got AMS charge check
                 fprintf(tlfid, data+'\n');
                 write(s, string(0x69006901), "uint8");
+                %write(s, '1778346494\r\n', "uint8");
             else
                 fprintf(tlfid, data);
                 disp(data)
