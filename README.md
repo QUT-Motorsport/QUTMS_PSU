@@ -29,4 +29,20 @@ Use following command to debug plots thoru jupyter notebook in VScode
 ## Bring missing library for novel method
 ```
 ln -s ../TF/Battery_SoCv4/py_modules/AutoFeedBack.py AutoFeedBack.py
+
+```
+
+## Commince logging and plotting
+0) Create a tmp folder in the user directory if intended to use default setup
+
+1) First execute AMS python logger and verefy that all folders gets filled with data.
+Note that if some of BMSes do not send either Voltage, Temperature or balancing, plotting will fail.
+```
+python AMS_Monitor.py
+```
+2) All data has to be saved into quick write area. Cache space or RAMdisk created area will do.
+Standard location for all OSes will be $USER$/tmp/{date-today}
+Make sure tmp folder exists
+```
+python AMS_heavy_plot.py
 ```
