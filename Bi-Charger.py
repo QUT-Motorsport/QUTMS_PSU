@@ -185,18 +185,18 @@ for i in range(0,3):
     print('\n\n')
 # input('Run tests')
 # %%
-writeline(pcb, SOUR_SET[1].format(2))
-writeline(pcb, DC_START[1])
-c_time = 0
-tic = perf_counter()
-while(get_float(pcb, MEASURMENTS[0]) != V_SINK):
-    c_time = perf_counter() - tic
-    if(c_time > 10):
-        break
-writeline(pcb, DC_START[0])
-writeline(pcb, SOUR_SET[1].format(0))
-print(f'Time for Cap charge: {c_time}')
-#! Time the discharge capacitor
+# writeline(pcb, SOUR_SET[1].format(2))
+# writeline(pcb, DC_START[1])
+# c_time = 0
+# tic = perf_counter()
+# while(get_float(pcb, MEASURMENTS[0]) != V_SINK):
+#     c_time = perf_counter() - tic
+#     if(c_time > 10):
+#         break
+# writeline(pcb, DC_START[0])
+# writeline(pcb, SOUR_SET[1].format(0))
+# print(f'Time for Cap charge: {c_time}')
+# #! Time the discharge capacitor
 # # input('Check VOltage and Current respinse...\n\nConnect battery.')
 # %%
 # input('Press any to proceed...')
@@ -207,6 +207,11 @@ if not os.path.exists(output_loc+'Current.csv'):
         f.write(','.join(header_voltage))
 else:
     print('Directories exists')
+
+#!Add 5 minutes worth zeroes and high pulse
+init = np.zeros(shape=(5*60), dtype=np.float32)
+current = current[:int(len(current)/2)]
+current = np.append(init, current)
 
 writeline(pcb, SOUR_SET[1].format(0))
 writeline(pcb, SINK_SET[1].format(0))
@@ -246,11 +251,39 @@ writeline(pcb, SINK_SET[1].format(0))
 writeline(pcb, SOUR_SET[0].format(V_SINK))
 writeline(pcb, DC_START[0])
 print("IT IS OVER!!!")
+# %%
 #! Make a plot
 #! Add IR model
 #! Modefy alrorith until it reaches
 #!-90A - 5 minutes
+header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
+if not os.path.exists(output_loc+'Current.csv'):
+    print('First time, making dirs')
+    with open(output_loc+'Current.csv', 'w+') as f:
+        f.write(','.join(header_voltage))
+else:
+    print('Directories exists')
+
+try:
+    while(1):
+        record = [
+                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                f'{get_float(pcb, MEASURMENTS[1])}',
+                f'{get_float(pcb, MEASURMENTS[0])}',
+                '\n'
+            ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
+        print(f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+              f'  Current :: {writeread(pcb, MEASURMENTS[1])}')
+        
+        time.sleep(1)
+except:
+    print('Reading failed or interupted')
+
 # %%
+
 header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
 if not os.path.exists(output_loc+'Current.csv'):
     print('First time, making dirs')

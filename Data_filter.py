@@ -8,9 +8,10 @@ import matplotlib as mpl  # Plot functionality
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-import tflite_runtime.interpreter as tflite
+# import tflite_runtime.interpreter as tflite
 
 from scipy import integrate # integration with trapizoid
+from sys import platform
 
 # mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
@@ -18,7 +19,10 @@ mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
 
-output_loc  : str = 'Data/BMS_data/July09-FUDS1/'
+if (platform == 'win32'):
+    output_loc  : str = 'DataWin\\BMS_data\\July14\\'
+else:
+    output_loc  : str = 'Data/BMS_data/July14/'
 # %%
 # Current data and plot
 BMSCurrent  : pd.DataFrame = pd.read_csv(
@@ -90,7 +94,7 @@ for i in range(0, 6):
 # def check
 # bmsID   : int = 0
 # pd.set_option('mode.chained_assignment', None)
-for bmsID in range(2, 3): #! BMS 2 is a problem with temps
+for bmsID in range(0, 6): #! BMS 2 is a problem with temps
     record = BMSsFUDS_V[bmsID][BMSsFUDS_V[bmsID]['Cycle_Time(s)']==BMSCurrent['Cycle_Time(s)'][0]].copy()
     record_temps = BMSsFUDS_T[bmsID][BMSsFUDS_T[bmsID]['Cycle_Time(round)']==BMSCurrent['Cycle_Time(s)'][0]][:1].copy()
     dictin = {
@@ -120,7 +124,8 @@ for bmsID in range(2, 3): #! BMS 2 is a problem with temps
         }    
     # record[record.columns[2:12]].values[0]
     test = pd.DataFrame.from_dict(data=dictin)
-    prev_record, prev_record_temps = None, None
+    prev_record = record
+    prev_record_temps = record_temps
     for i in range(1, len(BMSCurrent['Cycle_Time(s)'])):
         record_fs = BMSsFUDS_V[bmsID][BMSsFUDS_V[bmsID]['Cycle_Time(round)']==BMSCurrent['Cycle_Time(s)'][i]].copy()
         record = record_fs[:1].copy()

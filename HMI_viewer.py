@@ -1,0 +1,485 @@
+# %%
+import os
+import numpy as np
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+from datetime import datetime
+from time import perf_counter
+# from tqdm import trange
+
+float_dtype : type = np.float32
+int_dtype   : type = np.int32
+
+# hmi_dir    : str  = '../Data/HMI_FILES/'
+hmi_dir     : str = 'E:\\HMI_FILES\\'
+hmi_file   : str  = 'usb_log_1.csv'
+
+#? Getting HMI data
+tic : int = perf_counter()
+# %%
+colls = ["U set", "U actual", "I set (PS)", "I actual","P set (PS)", "P actual", "R set (PS)", "R actual", "R mode", "I set (EL)", "P set (EL)", "R set (EL)", "Output/Input", "Device mode", "Error", "Time"]
+df : pd.DataFrame = pd.read_csv(filepath_or_buffer=hmi_dir+hmi_file,
+                sep='\n', delimiter=';',
+                # Column and Index Locations and Names
+                header='infer', names=colls, index_col=False,
+                usecols=None, squeeze=False, prefix=None, mangle_dupe_cols=True,
+                # General Parsing Configuration
+                dtype=None, engine='python', converters=None, true_values=None,
+                false_values=None, skipinitialspace=False, skiprows=3,
+                skipfooter=1, nrows=None,
+                # NA and Missing Data Handling
+                na_values=None, keep_default_na=True, na_filter=True,
+                verbose=False, skip_blank_lines=True,
+                # Datetime Handling            
+                parse_dates=False, infer_datetime_format=False,
+                keep_date_col=False, date_parser=None, dayfirst=False,
+                cache_dates=True,
+                # Iteration
+                iterator=False, chunksize=None,
+                # Quoting, Compression, and File Format
+                compression='infer',
+                thousands=None, decimal=',', lineterminator=None, quotechar='"',
+                quoting=0, doublequote=True, escapechar=None, comment=None,
+                encoding=None, dialect=None,
+                # Error Handling
+                error_bad_lines=True, warn_bad_lines=True,
+                # Internal
+                delim_whitespace=False, low_memory=True,
+                memory_map=False, float_precision=None
+            )
+# %%
+dates_list = [datetime.strptime(time, '%H:%M:%S,%f')
+                for time in np.array(df['Time'])]
+Data : pd.DataFrame = pd.DataFrame(data = {
+    'Step_Time(s)': [date.microsecond/1000000 + date.second 
+                     + date.minute*60 + date.hour*3600
+                        for date in dates_list],
+    'Voltage(V)' : np.array(
+        object=df['U actual'].str.replace(',', '.').str.replace('V', ''),
+        dtype=np.float32),
+    'Current(A)' : np.array(
+        object=df['I actual'].str.replace(',', '.').str.replace('A', ''),
+        dtype=np.float32),
+    'Power(W)'   : np.array(
+        object=df['P actual'].str.replace('W', ''),
+        dtype=np.float32),
+    # 'Discharge_Capacity(Ah)' : np.array(
+    #     object=df['Ah'].str.replace(',', '.').str.replace('Ah', ''),
+    #     dtype=np.float32),
+    # 'Discharge_Power(Wh)' : np.array(
+    #     object=df['Wh'].str.replace(',', '.').str.replace('Wh', ''),
+    #     dtype=np.float32)
+    })
+print(f'Parsing HMI data took: {perf_counter()-tic}')
+# %%
+#! Plotting all data
+mpl.rcParams['figure.figsize'] = (16, 12)
+mpl.rcParams['axes.grid'] = False
+#? HMI data
+# Voltage
+plt.figure()
+plt.plot(Data['Step_Time(s)'], Data['Voltage(V)'], 'r')
+plt.title('Voltage', size=16)
+plt.ylabel('V', size=16)
+plt.xlabel('Time (s)', size=16)
+plt.xticks(size=14)
+plt.yticks(size=14)
+plt.ylim([50,70])
+plt.grid(which='major', alpha=1)
+
+# Current
+plt.figure()
+plt.plot(Data['Step_Time(s)'], Data['Current(A)'], 'b')
+plt.title('Current', size=16)
+plt.ylabel('A', size=16)
+plt.xlabel('Time (s)', size=16)
+plt.xticks(size=14)
+plt.yticks(size=14)
+# plt.ylim([-20.5, -19.5])
+#plt.xlim([1000, 1150])
+plt.grid(which='major', alpha=1)
+
+# Power
+plt.figure()
+plt.plot(Data['Step_Time(s)'], Data['Power(W)'], 'k')
+plt.title('Power', size=16)
+plt.ylabel('W', size=16)
+plt.xlabel('Time (s)', size=16)
+plt.xticks(size=14)
+plt.yticks(size=14)
+# plt.ylim([-1400, -1200])
+plt.grid(which='major', alpha=1)
+
+# Capacity
+plt.figure()
+plt.plot(Data['Step_Time(s)'], Data['Discharge_Capacity(Ah)'], 'b')
+plt.title('Discharge_Capacity', size=16)
+plt.ylabel('Ah', size=16)
+plt.xlabel('Time (s)', size=16)
+plt.xticks(size=14)
+plt.yticks(size=14)
+#plt.ylim([-1400, -1200])
+plt.grid(which='major', alpha=1)
+
+# Power
+plt.figure()
+plt.plot(Data['Step_Time(s)'], Data['Discharge_Power(Wh)'], 'k')
+plt.title('Discharge Power', size=16)
+plt.ylabel('Wh', size=16)
+plt.xlabel('Time (s)', size=16)
+plt.xticks(size=14)
+plt.yticks(size=14)
+#plt.ylim([-1400, -1200])
+plt.grid(which='major', alpha=1)
+# %%
+# BMS 
+cmap = plt.cm.rainbow
+
+
+custom_lines = [Line2D([0], [0], color=cmap(0.1), lw=5),
+                Line2D([0], [0], color=cmap(0.2), lw=5),
+                Line2D([0], [0], color=cmap(0.3), lw=5),
+                Line2D([0], [0], color=cmap(0.4), lw=5),
+                Line2D([0], [0], color=cmap(0.5), lw=5),
+                Line2D([0], [0], color=cmap(0.6), lw=5),
+                Line2D([0], [0], color=cmap(0.7), lw=5),
+                Line2D([0], [0], color=cmap(0.8), lw=5),
+                Line2D([0], [0], color=cmap(0.9), lw=5),
+                Line2D([0], [0], color=cmap(1.0), lw=5)
+                ]
+# Voltages
+colormap_set = [cmap(0.1),cmap(0.2),cmap(0.3),cmap(0.4),cmap(0.5),
+            cmap(0.6),cmap(0.7),cmap(0.8),cmap(0.9),cmap(1)]
+fig, axs = plt.subplots(2, 3)
+for i in range(len(colormap_set)):
+    axs[0, 0].plot(BMSsV[0][1:,i], color=colormap_set[i])
+    if (not any(i == t for t in [0, 1])):
+        axs[0, 1].plot(BMSsV[1][1:,i], color=colormap_set[i])
+        axs[0, 2].plot(BMSsV[2][1:,i], color=colormap_set[i])
+        
+        axs[1, 0].plot(BMSsV[3][1:,i], color=colormap_set[i])
+        axs[1, 1].plot(BMSsV[4][1:,i], color=colormap_set[i])
+        axs[1, 2].plot(BMSsV[5][1:,i], color=colormap_set[i])
+axs[0, 0].set_title('BMS 1')
+axs[0, 1].set_title('BMS 2')
+axs[0, 2].set_title('BMS 3')
+axs[1, 0].set_title('BMS 4')
+axs[1, 1].set_title('BMS 5')
+axs[1, 2].set_title('BMS 6')
+
+i = 0
+for ax in axs.flat:
+    #ax.set(ylim=[2.6,3.7])
+    ax.set(xlabel='Voltage (V)', ylim=[3.25,3.8])
+    ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
+    if( any(i == t for t in [1, 2, 3, 4, 5])):
+        ax.legend(custom_lines[2:], ['Sensor 3', 'Sensor 4',
+                                'Sensor 5', 'Sensor 6', 'Sensor 7', 'Sensor 8',
+                                'Sensor 9', 'Sensor10'])
+    else:
+        ax.legend(custom_lines, ['Sensor 1', 'Sensor 2', 'Sensor 3', 'Sensor 4',
+                             'Sensor 5', 'Sensor 6', 'Sensor 7', 'Sensor 8',
+                             'Sensor 9', 'Sensor10'])
+    i += 1
+# Temperatures
+custom_linesT = [Line2D([0], [0], color=cmap(0.00), lw=5),
+                 Line2D([0], [0], color=cmap(0.09), lw=5),
+                 Line2D([0], [0], color=cmap(0.18), lw=5),
+                 Line2D([0], [0], color=cmap(0.27), lw=5),
+                 Line2D([0], [0], color=cmap(0.36), lw=5),
+                 Line2D([0], [0], color=cmap(0.45), lw=5),
+                 Line2D([0], [0], color=cmap(0.55), lw=5),
+                 Line2D([0], [0], color=cmap(0.64), lw=5),
+                 Line2D([0], [0], color=cmap(0.73), lw=5),
+                 Line2D([0], [0], color=cmap(0.82), lw=5),
+                 Line2D([0], [0], color=cmap(0.91), lw=5),
+                 Line2D([0], [0], color=cmap(1.00), lw=5)
+                ]
+colormapT_set = [cmap(0.00),cmap(0.09),cmap(0.18),cmap(0.27),cmap(0.36),
+                 cmap(0.45),cmap(0.55),cmap(0.64),cmap(0.73),cmap(0.82),
+                 cmap(0.91), cmap(1.00)]
+
+figT, axTs = plt.subplots(2, 3)
+for i in range(len(colormapT_set)):
+    if (not any(i == t for t in [6, 7, 8, 9, 10, 11])):
+        axTs[0, 0].plot(BMSsT[0][1:,i], color=colormapT_set[i])
+    axTs[0, 1].plot(BMSsT[1][1:,i], color=colormapT_set[i])
+    if (not any(i == t for t in [0, 1, 2, 3, 4, 5, 8])):
+        axTs[0, 2].plot(BMSsT[2][1:,i], color=colormapT_set[i])
+
+    if (not any(i == t for t in [0, 1, 2, 3, 6, 7, 8])):
+        axTs[1, 0].plot(BMSsT[3][1:,i], color=colormapT_set[i])
+    axTs[1, 1].plot(BMSsT[4][1:,i], color=colormapT_set[i])
+    axTs[1, 2].plot(BMSsT[5][1:,i], color=colormapT_set[i])
+axTs[0, 0].set_title('BMS 1')
+axTs[0, 1].set_title('BMS 2')
+axTs[0, 2].set_title('BMS 3 - minor outliers')
+axTs[1, 0].set_title('BMS 4')
+axTs[1, 1].set_title('BMS 5')
+axTs[1, 2].set_title('BMS 6 - unclear data')
+
+i = 0
+for axT in axTs.flat:
+    axT.set(xlabel='Temperature (T)', ylim=[19.5,30])
+    axT.grid(b=True, axis='both', linestyle='-', linewidth=1)
+    if( i == 0):
+        axT.legend(custom_linesT[:7],
+                   ['Sensor 1', 'Sensor 2', 'Sensor 3', 'Sensor 4',
+                             'Sensor 5', 'Sensor 6'])
+    elif( i == 2):
+        axT.legend(custom_linesT[6:11], ['Sensor 7', 'Sensor 8',
+                             'Sensor10', 'Sensor11', 'Sensor12'])
+    elif( i == 3):
+        axT.legend(custom_linesT[9:], ['Sensor10', 'Sensor11', 'Sensor12'])
+    else:
+        axT.legend(custom_linesT,
+                            ['Sensor 1', 'Sensor 2', 'Sensor 3', 'Sensor 4',
+                             'Sensor 5', 'Sensor 6', 'Sensor 7', 'Sensor 8',
+                             'Sensor 9', 'Sensor10', 'Sensor11', 'Sensor12'])
+    i += 1
+# %%
+# Saving data to csv
+# i = 0
+# for i in range(0, len(BMSsV)):
+#     with open(f'parsed/Voltage-BMS-{i}.csv',mode='a') as f:
+#         pd.DataFrame(data=BMSsV[i][1:],
+#         columns=['VSens1','VSens2','VSens3','VSens4','VSens5',
+#                 'VSens6','VSens7','VSens8','VSens9','VSens10']).to_csv(f, index=False)
+#     with open(f'parsed/Temperature-BMS-{i}.csv',mode='a') as f:
+#         pd.DataFrame(data=BMSsT[i][1:],
+#         columns=['TSens1','TSens2','TSens3','TSens4','TSens5','TSens6',
+#                 'TSens7','TSens8','TSens9','TSens10','TSens11','TSens12']).to_csv(f, index=False)
+# %%
+# plt.plot(Data['Current(A)']/3) # 10A - 3 parallel by 2 bricks.
+# 6 parallels inside single brick
+
+#! 1) Get model. Get shape.
+#!  1.1) Current(A), Voltage(V), Temperature(C)
+#!  1.2) Input shape of all 500 by 3 in UP order.
+#! 2) Get data model used for training and normolise by training set model came
+#!      from. Try all 3.
+#! 3) Try on single line with constant current.
+#! 4) Plot single.
+#! 5) Get everythin else
+
+# %%
+#? Model №1 - Chemali2017    - DST  - 1
+#?                           - US06 - 50
+#?                           - FUDS - 48
+
+#? Model №2 - BinXiao2020    - DST  - 50
+#?                           - US06 - 2 (21)
+#?                           - FUDS - 48
+
+#? Model №3 - TadeleMamo2020 - DST  - ?
+#?                           - US06 - 25
+#?                           - FUDS - 10
+
+#? Model №7 - WeiZhang2020   - DST  - 9
+#?                           - US06 - ?
+#?                           - FUDS - 3
+author  : str = 'Chemali2017'#'BinXiao2020'#'TadeleMamo2020'#'WeiZhang2020'#Chemali2017
+profile : str = 'FUDS'#'FUDS'#'US06'#'DST'
+iEpoch  : int = 48
+model_loc : str = f'../Models/{author}/{profile}-models/'
+
+try:
+    # for _, _, files in os.walk(model_loc):
+    #     for file in files:
+    #         if file.endswith('.ch'):
+    #             iEpoch = int(os.path.splitext(file)[0])
+    
+    # model : tf.keras.models.Sequential = tf.keras.models.load_model(
+    #         f'{model_loc}{iEpoch}',
+    #         compile=False,
+    #         custom_objects={"RSquare": tfa.metrics.RSquare}
+    #         )
+    #! Mamo case
+    model : tf.keras.models.Sequential = tf.keras.models.load_model(
+            f'{model_loc}{iEpoch}',
+            compile=False,
+            custom_objects={"RSquare": tfa.metrics.RSquare,
+                            "AttentionWithContext": AttentionWithContext,
+                            "Addition": Addition,
+                            }
+            )
+    firstLog = False
+    print("Model Identefied.")
+except OSError as identifier:
+    print("Model Not Found, Check the path. {} \n".format(identifier))
+# %%
+#* Testing model against some article model
+data_dir    : str = '../Data/'
+dataGenerator = DataGenerator(train_dir=f'{data_dir}A123_Matt_Set',
+                              valid_dir=f'{data_dir}A123_Matt_Val',
+                              test_dir=f'{data_dir}A123_Matt_Test',
+                              columns=[
+                                'Current(A)', 'Voltage(V)', 'Temperature (C)_1',
+                                'Charge_Capacity(Ah)', 'Discharge_Capacity(Ah)'
+                                ],
+                              PROFILE_range = profile)
+MEAN = np.mean(a=dataGenerator.train[:,:3], axis=0,
+                                    dtype=float_dtype,
+                                    keepdims=False)
+STD = np.std(a=dataGenerator.train[:,:3], axis=0,
+                            keepdims=False)
+# !! Compare with original
+normalised_training = np.divide(
+    np.subtract(
+            np.copy(a=dataGenerator.train_list[0].iloc[:,:3]),
+            MEAN
+        ),
+    STD
+    )
+# %%
+#? Given: 28408 samples, 1s => 7.89h
+#?                       10s => +-48min
+fs = 10
+BMS_id = 0
+cell = 0 # 0-9=
+length = BMSsV[BMS_id][::fs,:].shape[0]-1
+test_data : np.ndarray = np.zeros(shape=(length,3), dtype=float_dtype)
+#!Current
+test_data[:,0] = Data['Current(A)'][1:length+1]/3/6
+#!Voltage and temperature of a Cell
+test_data[:,1] = BMSsV[BMS_id][1:(length)*fs:fs,cell]
+test_data[:,2] = BMSsT[BMS_id][1:(length)*fs:fs,cell]
+
+normalised_test_data = np.divide(
+    np.subtract(
+            np.copy(a=test_data),
+            MEAN
+        ),
+    STD
+    )
+PRED = np.zeros(shape=(length-500))
+for i in trange(0, length-500):
+    PRED[i] = model.predict(np.expand_dims(normalised_test_data[i:500+i,:], axis=0),
+                batch_size=1)
+time = np.linspace(0, BMSsV[BMS_id].shape[0]/fs/60, length-500)
+plt.figure
+plt.plot(time, PRED*100,
+         label="Prediction", color='k', linewidth=7)
+plt.grid(b=True, axis='both', linestyle='-', linewidth=1)
+plt.ylabel('Charge(%)', fontsize=32)
+#plt.xlabel('Samples fs=10', fontsize=32)
+plt.xlabel('Time (minutes) - fs=10', fontsize=32)
+plt.xticks(range(0,50,5), fontsize=18, rotation=0)
+plt.yticks(range(10,90,5), fontsize=18, rotation=0)
+plt.title(
+      f"BMD ID-{BMS_id+1} {author}. {profile}-trained",
+      fontsize=36)
+# plt.savefig(f'figures/BMD_ID-{BMS_id+1}-{author}-{profile}.png')
+# %%
+#* DST based model
+# out_steps = 15
+# my_model_loc = '../Models/Sadykov2021-15steps/DST-models/8/8'
+#* US06 based model
+out_steps = 20
+my_model_loc = '../Models/Sadykov2021-20steps/US06-models/10/10'
+try:
+    lstm_model : AutoFeedBack = AutoFeedBack(units=510,
+            out_steps=out_steps, num_features=1
+        )
+    lstm_model.load_weights(my_model_loc)
+    firstLog = False
+    print("Model Identefied. Continue training.")
+except:
+    print("Model Not Found, with some TF error.\n")
+# %%
+my_test_data : np.ndarray = np.zeros(shape=(length-500,3), dtype=float_dtype)
+#!Current
+my_test_data[:,0] = test_data[500:,0]
+my_test_data[:,1] = test_data[500:,1]
+my_test_data[:,2] = test_data[500:,2]
+
+my_normalised_test_data : np.ndarray = np.zeros(shape=(length-500,4), dtype=float_dtype)
+my_normalised_test_data[:,:3] = np.divide(
+    np.subtract(
+            np.copy(a=my_test_data[:,:]),
+            MEAN
+        ),
+    STD
+    )
+my_normalised_test_data[:500,3]  = PRED[:500]
+
+for i in trange(0, length-1000):
+    #! Something unclear here.
+    my_normalised_test_data[500+i,3] = lstm_model.predict(
+                        np.expand_dims(my_normalised_test_data[i:500+i,:], axis=0),
+                batch_size=1)
+
+time = np.linspace(0, BMSsV[BMS_id].shape[0]/fs/60, length-500)
+plt.figure
+plt.plot(time, my_normalised_test_data[:,3]*100,
+         label="Prediction", color='k', linewidth=7)
+plt.grid(b=True, axis='both', linestyle='-', linewidth=1)
+plt.ylabel('Charge(%)', fontsize=32)
+#plt.xlabel('Samples fs=10', fontsize=32)
+plt.xlabel('Time (minutes) - fs=10', fontsize=32)
+plt.xticks(range(0,50,5), fontsize=18, rotation=0)
+plt.yticks(range(10,90,5), fontsize=18, rotation=0)
+plt.title(
+      f"BMD ID-{BMS_id+1} Sadykov2021. {profile}-trained",
+      fontsize=36)
+# %%
+# VIT_input : np.ndarray = np.zeros(shape=(length-500,3), dtype=float_dtype)
+# VIT_input = normalised_test_data[500:, :]
+# SOC_input : np.ndarray = np.zeros(shape=(500,1), dtype=float_dtype)
+# SOC_input[:, 0] = PRED[:500]
+# myPRED = np.zeros(shape=(length-500))
+# myPRED[:500] = SOC_input[:, 0]
+# for i in trange(0, length-1000-1):
+#     #! Or here omething unclear here.
+#     logits = lstm_model.predict(
+#                     x=np.expand_dims(
+#                             np.concatenate(
+#                                     (VIT_input[i:i+500, :], SOC_input),
+#                                     axis=1
+#                                 ),
+#                             axis=0
+#                         ),
+#                     batch_size=1
+#                 )
+#     SOC_input = np.concatenate(
+#                             (SOC_input, np.expand_dims(logits,axis=0)),
+#                             axis=0)[1:,:]
+#     myPRED[500+i] = logits
+
+# time = np.linspace(0, BMSsV[BMS_id].shape[0]/fs/60, length-500)
+# plt.figure
+# plt.plot(time, myPRED*100,
+#          label="Prediction", color='k', linewidth=7)
+# plt.grid(b=True, axis='both', linestyle='-', linewidth=1)
+# plt.ylabel('Charge(%)', fontsize=32)
+# #plt.xlabel('Samples fs=10', fontsize=32)
+# plt.xlabel('Time (minutes) - fs=10', fontsize=32)
+# plt.xticks(range(0,50,5), fontsize=18, rotation=0)
+# plt.yticks(range(10,90,5), fontsize=18, rotation=0)
+# plt.title(
+#       f"BMD ID-{BMS_id+1} {author}. {profile}-trained",
+#       fontsize=36)
+# %%
+test = my_normalised_test_data[:,3]
+# test = myPRED
+def smooth(y, box_pts: int) -> np.array:
+    """ Smoothing data using numpy convolve. Based on the size of the
+    averaging box, data gets smoothed.
+    Here it used in following form:
+    y = V/(maxV-minV)
+    box_pts = 500
+
+    Args:
+        y (pd.Series): A data which requires to be soothed.
+        box_pts (int): Number of points to move averaging box
+
+    Returns:
+        np.array: Smoothed data array
+    """
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
+plt.plot(smooth(test, 40))
+# %%

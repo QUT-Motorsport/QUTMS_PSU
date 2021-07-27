@@ -29,14 +29,23 @@ from AutoFeedBack import AutoFeedBack
 
 from datetime import datetime
 import getpass
+from sys import platform
 
-mpl.rcParams['figure.figsize'] = (32, 16)
+# mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
-output_loc = f'/home/{getpass.getuser()}/tmp/{datetime.now().strftime("%B%d")}/'
 
+#! Choose the quick read/write location
+if (platform == 'win32'):
+    output_loc = (f'C:\\Users\\{getpass.getuser()}\\'
+                 f'tmp\\{datetime.now().strftime("%B%d")}\\')
+else:
+    # output_loc = (f'/home/{getpass.getuser()}'
+    #               f'/tmp/{datetime.now().strftime("%B%d")}/')
+    output_loc = (f'/home/{getpass.getuser()}'
+                  f'/tmp/July14/')
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 GPU=0
 if physical_devices:
@@ -72,9 +81,9 @@ def SoC(V : pd.DataFrame, I : pd.DataFrame, T : pd.DataFrame,
     """ Determine state of charge based on 3-4 feature model
     """
     test_data : np.ndarray = np.zeros(shape=(500,4), dtype=np.float32)
-    test_data[:, 0] = I.iloc[::,1].to_numpy()
-    test_data[:, 1] = V.iloc[::fs,cell+2].to_numpy()
-    test_data[:, 2] = T.iloc[::,cell+2].to_numpy()
+    test_data[:, 0] = I.iloc[::,1]
+    test_data[:, 1] = V[::,cell+2]
+    test_data[:, 2] = T[::,cell+2]
     test_data[:,:3]= np.divide(
                     np.subtract(
                             np.copy(a=test_data[:,:3]),
@@ -107,7 +116,7 @@ def ccSoC(current   : pd.Series,
           time_s    : pd.Series,
           n_capacity: float = 2.5 ) -> pd.Series:
     """ Return SoC based on Couloumb Counter.
-    TODO: Ceil the data and reduce to 2 decimal places.
+    @ 25deg I said it was 2.5
 
     Args:
         chargeData (pd.Series): Charge Data Series
@@ -120,18 +129,12 @@ def ccSoC(current   : pd.Series,
     Returns:
         pd.Series: Ceil data with 2 decimal places only.
     """
-    # Raise error
-    # if(any(time_s) < 0):
-    #     raise ValueError("Parser: Time cannot be negative.")
-    # if(n_capacity == 0):
-    #     raise ZeroDivisionError("Nominal capacity cannot be zero.")
-    # Integration with trapezoid    
-    # Nominal Capacity 2.5Ah. Double for that
-    #uni_data_multi["CC"] = uni_data_multi["trapz(I)"]/3600*2.5
-    #DoD = DsgCap - ChgCap
-    #SOC = 1-Dod/Q
-    #@ 25deg I said it was 2.5
-    return (integrate.cumtrapz(current, time_s, initial=0)/abs(n_capacity*2))
+    return (1/(3600*n_capacity))*(
+            integrate.cumtrapz(
+                    y=current, x=time_s,
+                    dx=1, axis=-1, initial=0
+                )
+        )
 # %%
 if __name__ == '__main__':
     #! Setup all plots for animations
@@ -216,7 +219,7 @@ if __name__ == '__main__':
                         [[50]*10]*60,
                     )
             )
-        ax.legend(labels_v, loc='center left')
+        # ax.legend(labels_v, loc='center left')
         id+=1
 
     # SoC plus
@@ -245,7 +248,7 @@ if __name__ == '__main__':
                         [[50]*10]*60,
                     )
             )
-        ax.legend(labels_v, loc='center left')
+        # ax.legend(labels_v, loc='center left')
         id+=1
     
     # CC
@@ -263,7 +266,7 @@ if __name__ == '__main__':
 
                 )
             )
-        ax.legend(labels_t, loc='center left')
+        # ax.legend(labels_t, loc='center left')
         id+=1
     
     # Total provided current
@@ -290,15 +293,15 @@ if __name__ == '__main__':
             )
         VITpSOC.load_weights('Models/VITpSoC/12')
         print('VITpSoC model loaded')
-        model_file  : str ='Models/Model-№1-FUDS-48.tflite'
-        model_file, *device = model_file.split('@')
-        interpreter = tflite.Interpreter(
-                model_path=model_file,
-                experimental_delegates=[
-                    tflite.load_delegate('libedgetpu.so.1', {'device': device[0]} if device else {})
-                ]
-            )
-        interpreter.allocate_tensors()
+        # model_file  : str ='Models/Model-№1-FUDS-48.tflite'
+        # model_file, *device = model_file.split('@')
+        # interpreter = tflite.Interpreter(
+        #         model_path=model_file,
+        #         experimental_delegates=[
+        #             tflite.load_delegate('libedgetpu.so.1', {'device': device[0]} if device else {})
+        #         ]
+        #     )
+        # interpreter.allocate_tensors()
     except:
         print('One of the models failed to load.')
 
@@ -313,15 +316,17 @@ if __name__ == '__main__':
 # %%
     i = 0
     tick = time.perf_counter()
+    fs_v    : int = 4
+    p_period    :   int = 60*5
     def animate(self):
         global i
         # TotI : pd.DataFrame = pd.read_csv(
         #         f'demo/current.csv',
         #         # skiprows=11000
         #     ).tail(2000+i)[:2000]/18
-        TotI = pd.read_csv(f'{output_loc}Current.csv').tail(500)
+        TotI = pd.read_csv(f'{output_loc}Current.csv').head(500+i).tail(500)
         #for bms in range(0, len(linesSoCb)):
-        for bms in [1, 2]:
+        for bms in range(0,6):#[1, 2]:
             # BMSv : pd.DataFrame = pd.read_csv(
             #         f'demo/voltages/CANid_{bms}.csv',
             #         # skiprows=10000
@@ -330,11 +335,21 @@ if __name__ == '__main__':
             #         f'demo/temperatures/CANid_{bms}.csv',
             #         # skiprows=6000
             #     ).tail(2000+i)[:500]
-            BMSv = pd.read_csv(f'{output_loc}Voltages/CANid_{bms}.csv').tail(2000)
-            # BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').tail(1)
-            BMSt = pd.read_csv(f'{output_loc}Temperatures/CANid_{bms}.csv').tail(500)
-        
+            # BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').head(2000+i).tail(fs_v*p_period).iloc[::4,:]
+            # BMSb = pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').head(2000+i).tail(1).iloc[:,:]
+            # BMSt = pd.read_csv(f'{output_loc}TemperatureInfo/CANid_{bms}.csv').head(2000+i).tail(120).iloc[:,:]
+            BMSv = np.resize(
+                a=pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').head(2000+i).tail(fs_v*p_period).iloc[::4,:],
+                new_shape=(500,13))
+            # BMSb = np.resize(
+            #     a=pd.read_csv(f'{output_loc}BalanceInfo/CANid_{bms}.csv').head(2000+i).tail(1).iloc[:,:],
+            #     new_shape=(500,))
+            BMSt = np.resize(
+                a=pd.read_csv(f'{output_loc}TemperatureInfo/CANid_{bms}.csv').head(2000+i).tail(120).iloc[:,:],
+                new_shape=(500,17))
+
             for cell in range(0,len(linesSoCb[bms])):
+                # print(f'BMS: {bms} and cell: {cell}')
                 VIT, VITpSoC, lite = SoC(BMSv, TotI, BMSt, pSoC[bms], cell, None)
                 #?  SoC plots
                 #* Bar plot SoC
@@ -371,18 +386,21 @@ if __name__ == '__main__':
                 # print(cSoC[bms][:,cell].shape)
                 # print(pSoC[bms][:,cell].shape)
             #?  Coulumb Counter
-            start_cycling = pd.to_datetime(TotI.iloc[0,0][:-4])
-            dT=(pd.to_datetime(pd.to_datetime(TotI.iloc[-1,0][:-4])) \
-                - start_cycling)
+            # start_cycling = pd.to_datetime(TotI.iloc[0,0][:-4])
+            # dT=(pd.to_datetime(pd.to_datetime(TotI.iloc[-1,0][:-4])) \
+            #     - start_cycling)
 
-            newCC = CC[-1,bms] + ccSoC(current=TotI[-i:].to_numpy()[0]*6, time_s=np.expand_dims(i, axis=0))
-            CC[:,bms] = np.concatenate(
-                        (CC[:,bms], newCC),
-                        axis=0
-                    )[1:]
-            linesCC[bms][0].set_ydata(
-                    CC[:,bms]*100
-                )
+            # newCC = CC[-1,bms] + ccSoC(current=TotI.iloc[:,1].to_numpy()[0]*6,
+            #                           time_s=np.expand_dims(500, axis=0))
+            
+            
+            # CC[:,bms] = np.concatenate(
+            #             (CC[:,bms], newCC),
+            #             axis=0
+            #         )[1:]
+            # linesCC[bms][0].set_ydata(
+            #         CC[:,bms]*100
+            #     )
         #?  Current plot
         linesCurrent[0][0].set_ydata(
                 TotI.iloc[-360:,1].to_numpy()*18
@@ -393,13 +411,15 @@ if __name__ == '__main__':
             tuples_return += tuple(linesSoCp[bms])
             tuples_return += tuple(linesSoCplusb[bms])
             tuples_return += tuple(linesSoCplusp[bms])
-        i += 1
+        # i += 1
         print(time.perf_counter()-tick)
         return tuples_return
 
     ani = animation.FuncAnimation(      #blit syncs the animate as it completes
-            fig, animate, interval=0, blit=True)
-    fig.show()
+            fig, animate, interval=1, blit=True)
+    # fig.show()
+    ani.save('animationSoC.gif', writer='pillow', fps=30)
     input('Exiting?')
+    
 #    color=my_cmap(SoC[-1,:, id])
 # %%

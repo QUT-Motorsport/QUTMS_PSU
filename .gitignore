@@ -19,3 +19,6 @@ Data
 DataWin
 py_modules
 py_modulesWin
+
+# Outputs
+*.gif

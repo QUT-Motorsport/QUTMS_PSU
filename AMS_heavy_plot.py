@@ -20,7 +20,7 @@ from datetime import datetime
 import getpass
 from sys import platform
 
-mpl.rcParams['figure.figsize'] = (32, 16)
+# mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
 mpl.rcParams['font.family'] = 'Bender'
 
@@ -201,6 +201,9 @@ if __name__ == '__main__':
         #! Do another loop here to workout bar heights
         avg_volts   : float = sum_volts / len(linesVp)
         # print(avg_volts)
+        for ax in axsBb:
+            ax.set_ylim([avg_volts-0.05, avg_volts+0.05])
+            
         for bms in range(0, len(linesVp)):
             BMSv = pd.read_csv(f'{output_loc}VoltageInfo/CANid_{bms}.csv').tail(1)
             for cell in range(0, len(linesVp[bms])):
@@ -229,4 +232,5 @@ if __name__ == '__main__':
     ani = animation.FuncAnimation(
             fig, animate, interval=1, blit=True)
     fig.show()
+    # ani.save('animation.gif', writer='pillow', fps=60)
     input('Exiting?')

@@ -28,7 +28,7 @@ else:
     output_loc = (f'/home/{getpass.getuser()}'
                   f'/tmp/{datetime.now().strftime("%B%d")}/')
 
-on_sequence = '69006901' # ^M is the problem. On WIndows, it send us \r\n
+on_sequence = '1761634561' # ^M is the problem. On WIndows, it send us \r\n
                          #terminator. Workout the replacer
 
 AWAITING : bool  = False
@@ -239,13 +239,14 @@ if __name__ == '__main__':
                 except:
                     if(data[:-2] == str(0x69FF69FE)):
                         print('AMS charge check')
-                        # ser.write(bytes(on_sequence, "asci")) # "uint8"
+                        ser.write(bytes(on_sequence, "ascii")) # "uint8"
                         # s.write('69006901')
                         # s.flush()
-                        # ser.write(0x69006901)
+                        # s.write('1761634561')
                         # ser.write(np.array(0x69006901, dtype=np.uint8)[0])
                         # ser.write(bytes('\r\n', "utf-8")) # "uint8"
-                    pass
+                    else:
+                        print(data)
                 # data = jlfid.readline()
                 # time.sleep(1)
                 # print("Data out")
