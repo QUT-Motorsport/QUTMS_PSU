@@ -50,7 +50,7 @@ if __name__ == '__main__':
     labels_v = ['cell-1','cell-2','cell-3','cell-4','cell-5','cell-6','cell-7','cell-8','cell-9','cell-10']
     labels_t = ['sns-1','sns-2','sns-3','sns-4','sns-5','sns-6','sns-7','sns-8','sns-9','sns-10','sns-11','sns-12','sns-13','sns-14']
     v_shape : int = 4
-    h_shape: int = 6
+    h_shape: int = 8
     
     fig = plt.figure(num = 0, figsize=(32,16))
     fig.suptitle("Bar Volts, balancers, Volt plots, && Temperatures ",
@@ -62,7 +62,9 @@ if __name__ == '__main__':
     ax3  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 3), colspan=1)
     ax4  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 4), colspan=1)
     ax5  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 5), colspan=1)
-    axsVb = [ax0, ax1, ax2, ax3, ax4, ax5]
+    ax24 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 6), colspan=1)
+    ax25 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(0, 7), colspan=1)
+    axsVb = [ax0, ax1, ax2, ax3, ax4, ax5, ax24, ax25]
     # Voltages Plots
     ax6  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 0), colspan=1)
     ax7  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 1), colspan=1)
@@ -70,7 +72,9 @@ if __name__ == '__main__':
     ax9  = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 3), colspan=1)
     ax10 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 4), colspan=1)
     ax11 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 5), colspan=1)
-    axsVp = [ax6, ax7, ax8, ax9, ax10, ax11]
+    ax26 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 6), colspan=1)
+    ax27 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(2, 7), colspan=1)
+    axsVp = [ax6, ax7, ax8, ax9, ax10, ax11, ax26, ax27]
     # Temperature Plot
     ax12 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 0), colspan=1)
     ax13 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 1), colspan=1)
@@ -78,7 +82,9 @@ if __name__ == '__main__':
     ax15 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 3), colspan=1)
     ax16 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 4), colspan=1)
     ax17 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 5), colspan=1)
-    axsTp = [ax12, ax13, ax14, ax15, ax16, ax17]
+    ax28 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 6), colspan=1)
+    ax29 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(3, 7), colspan=1)
+    axsTp = [ax12, ax13, ax14, ax15, ax16, ax17, ax28, ax29]
     # BalanceVoltages Bars
     ax18 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 0), colspan=1)
     ax19 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 1), colspan=1)
@@ -86,7 +92,9 @@ if __name__ == '__main__':
     ax21 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 3), colspan=1)
     ax22 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 4), colspan=1)
     ax23 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 5), colspan=1)
-    axsBb = [ax18, ax19, ax20, ax21, ax22, ax23]
+    ax30 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 6), colspan=1)
+    ax31 = plt.subplot2grid(fig = fig, shape=(v_shape, h_shape), loc=(1, 7), colspan=1)
+    axsBb = [ax18, ax19, ax20, ax21, ax22, ax23, ax30, ax31]
 
     linesVb = []
     id = 0
