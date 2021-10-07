@@ -18,6 +18,8 @@ from datetime import datetime
 
 from sys import platform
 
+from typing import List
+
 DEFAULT_BAUD    : int = 115200
 
 #! Choose the quick read/write location
@@ -33,7 +35,7 @@ on_sequence = '1761634561' # ^M is the problem. On WIndows, it send us \r\n
 
 AWAITING : bool  = False
 # %%
-def serial_ports() -> list[str]:
+def serial_ports() -> List[str]:
     """ Lists serial port names
     Taken from: https://stackoverflow.com/questions/12090503/listing-available-com-ports-with-python
         :raises EnvironmentError:
@@ -133,7 +135,7 @@ def worker_toCSV(queue : Queue) -> None:
 # %%
 if __name__ == '__main__':
     print("AMS Monitor Starting\n")
-    aports  : list[str] = serial_ports()
+    aports  : List[str] = serial_ports()
     print("====================\n")
     for i in range(0, len(aports)):
         print("({}) - {}\n".format(i+1, aports[i]))

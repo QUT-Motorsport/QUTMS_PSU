@@ -22,3 +22,6 @@ py_modulesWin
 
 # Outputs
 *.gif
+
+# venv
+venv
