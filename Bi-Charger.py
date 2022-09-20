@@ -25,7 +25,7 @@ if (platform == 'win32'):
                  f'tmp\\{datetime.now().strftime("%B%d")}\\')
 else:
     from py_modules.parse_excel import ParseExcelData
-    train_dir	  : str ='Data/A123_Matt_Val_2nd'
+    train_dir	  : str ='../TF/Battery_SoCv4/Data/A123_Matt_Val_2nd'
     output_loc = (f'/home/{getpass.getuser()}'
                   f'/tmp/{datetime.now().strftime("%B%d")}/')
 
@@ -102,16 +102,19 @@ MEASURMENTS : list[str] = ['MEAS:VOLT:DC?\n',
 # Get data for profiling
 columns = ['Test_Time(s)', 'Current(A)', 'Charge_Capacity(Ah)', 'Discharge_Capacity(Ah)']
 tr_ls_df, _ = ParseExcelData(train_dir,
-                                    #range(4 ,12), # DST
-                                    range(22,25),   # FUDS
+                                    range(4 ,12), # DST
+                                    # range(22,25),   # FUDS
                                     columns)
-#! 1 hour 40 minuts should be good for testing
+# #! 1 hour 40 minuts should be good for testing
 step_time = (tr_ls_df[0]['Test_Time(s)'].iloc[:]-tr_ls_df[0]['Test_Time(s)'].iloc[0]).to_numpy() # 2000:8000 and 2000
-current = (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy()
+current = (tr_ls_df[0]['Current(A)'].iloc[950:]).to_numpy()*60
+plt.plot(current)
 # current = np.append(current, (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy(), axis=0)
 # current = np.append(current, (tr_ls_df[0]['Current(A)'].iloc[:]).to_numpy(), axis=0)
-#! 3 times more
-
+# #! 3 times more
+# %%
+# import pandas as pd
+# current_data = pd.read_csv('/mnt/WORK/QUT/Data/UQ_filtered/UQ.csv')
 # %%
 #? Socket transmit function
 terminator = bytes('\n', 'ascii')
@@ -199,6 +202,92 @@ for i in range(0,3):
 # #! Time the discharge capacitor
 # # input('Check VOltage and Current respinse...\n\nConnect battery.')
 # %%
+# [Pulse discharge]
+import math
+header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
+if not os.path.exists(output_loc+'Current.csv'):
+    print('First time, making dirs')
+    with open(output_loc+'Current.csv', 'w+') as f:
+        f.write(','.join(header_voltage))
+else:
+    print('Directories exists')
+targetCurrent : int = 150
+writeline(pcb, SOUR_SET[1].format(0))
+writeline(pcb, SINK_SET[1].format(0))
+writeline(pcb, DC_START[1])
+
+try:    
+    # OCV monitroing
+    t_end = time.time() + 60*1
+    while(time.time() < t_end):
+        record = [
+            f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+            f'{get_float(pcb, MEASURMENTS[1])}',
+            f'{get_float(pcb, MEASURMENTS[0])}',
+            '\n'
+        ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
+        print(f'OCV Monitoring'
+              f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+              f'  Current :: {writeread(pcb, MEASURMENTS[1])}' 
+              f'  targetCurrent :: {0}')
+
+    # Pulse dicharge
+    writeline(pcb, SINK_SET[1].format(abs(targetCurrent)))
+    writeline(pcb, SINK_SET[0].format(V_SINK))
+    writeline(pcb, SOUR_SET[1].format(0))
+    # while(math.isclose(measuredCurrent, targetCurrent, ret_tol=2, abs_tol=2):
+    t_end = time.time() + 60*2
+    while(time.time() < t_end):
+        measuredCurrent : float = get_float(pcb, MEASURMENTS[1])
+        record = [
+            f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+            f'{measuredCurrent}',
+            f'{get_float(pcb, MEASURMENTS[0])}',
+            '\n'
+        ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
+        print(f'Performing pulse with {targetCurrent}'
+            f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+            f'  Current :: {measuredCurrent}' 
+            f'  targetCurrent :: {targetCurrent}')
+    
+    # Resting time
+    writeline(pcb, SOUR_SET[1].format(0))
+    writeline(pcb, SOUR_SET[0].format(V_SOUR))
+    writeline(pcb, SINK_SET[1].format(0))
+    t_end = time.time() + 60 * 60
+    while(time.time() < t_end):
+        # LOG
+        record = [
+                f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")[:-3]}',
+                f'{get_float(pcb, MEASURMENTS[1])}',
+                f'{get_float(pcb, MEASURMENTS[0])}',
+                '\n'
+            ]
+        with open(output_loc+'Current.csv', 'a') as f:
+            f.write(','.join(record))
+
+        print(f'Voltage :: {writeread(pcb, MEASURMENTS[0])}'
+            f'  Current :: {writeread(pcb, MEASURMENTS[1])}' 
+            f'  targetCurrent :: {0}')
+                
+except:
+    writeline(pcb, SOUR_SET[1].format(0))
+    writeline(pcb, SINK_SET[1].format(0))
+    writeline(pcb, SOUR_SET[0].format(V_SINK))
+    writeline(pcb, DC_START[0])
+
+writeline(pcb, SOUR_SET[1].format(0))
+writeline(pcb, SINK_SET[1].format(0))
+writeline(pcb, SOUR_SET[0].format(V_SINK))
+writeline(pcb, DC_START[0])
+print("IT IS OVER!!!")
+# %%
 # input('Press any to proceed...')
 header_voltage = ['Date_Time', 'Current(A)', 'Voltage(V)', '\n']
 if not os.path.exists(output_loc+'Current.csv'):
@@ -209,16 +298,16 @@ else:
     print('Directories exists')
 
 #!Add 5 minutes worth zeroes and high pulse
-init = np.zeros(shape=(5*60), dtype=np.float32)
-current = current[:int(len(current)/2)]
-current = np.append(init, current)
+# init = np.zeros(shape=(5*60), dtype=np.float32)
+# current = current[:int(len(current)/2)]
+# current = np.append(init, current)
 
 writeline(pcb, SOUR_SET[1].format(0))
 writeline(pcb, SINK_SET[1].format(0))
 writeline(pcb, DC_START[1])
 try:
-    for i in range(0, len(current)): #! CHange back to zero
-        targetCurrent = current[i]*40
+    for i in range(300, len(current)): #! CHange back to zero
+        targetCurrent = current[i]
         if(targetCurrent > 0 and targetCurrent < 200):
             writeline(pcb, SOUR_SET[1].format(targetCurrent))
             writeline(pcb, SOUR_SET[0].format(V_SOUR))
@@ -423,3 +512,21 @@ pcb.close()
 #     if len(full_msg) > 0:
 #         print(full_msg)
 # %%
+#! Making some plots to csv for Sams request
+st_current = pd.read_csv('/home/xana/tmp/July09-FUDS1/Current.csv')
+print(f'Current Set: {current.shape}\n Current sns: {st_current["Current(A)"].shape}')
+init = np.zeros(shape=(5*60), dtype=np.float32)
+current = current[:int(len(current)/2)]
+current = np.append(init, current)
+
+# %%
+ln = current.shape[0]
+ln2 = st_current.shape[0]
+plt.plot(st_current["Current(A)"][:]/40)
+plt.plot((np.append(np.zeros(167), current)))
+plt.xlim([6000, 6100])
+
+# %%
+# st_current["Current_Set"] = (np.append(np.zeros(167), current))
+# st_current["Current_Divided"] = st_current["Current(A)"][:]/40
+st_current[['Date_Time','Current(A)','Voltage(V)', 'Current_Divided','Current_Set']].to_csv('/home/xana/tmp/July09-FUDS1/CurrentUpdated.csv')

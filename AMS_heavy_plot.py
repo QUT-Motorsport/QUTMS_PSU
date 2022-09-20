@@ -103,6 +103,7 @@ if __name__ == '__main__':
         ax.grid(b=True, axis='y', linestyle='-', linewidth=2)
         ax.set_title(f'CANid {id}')
         ax.set_ylim([2.8, 3.7])
+        # ax.set_ylim([2.0, 3.1])
         linesVb.append(
                 ax.bar(range(10),
                        [3.0]*10,
@@ -116,6 +117,7 @@ if __name__ == '__main__':
         ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
         # ax.set_title(f'CANid {id}')
         ax.set_ylim([2.9, 3.7])
+        # ax.set_ylim([2.0, 3.1])
         ax.set_xlim([0, p_period])
         linesVp.append(
                 ax.plot(range(p_period),
@@ -130,7 +132,7 @@ if __name__ == '__main__':
     for ax in axsTp:
         ax.grid(b=True, axis='both', linestyle='-', linewidth=1)
         # ax.set_title(f'CANid {id}')
-        ax.set_ylim([15, 50])
+        ax.set_ylim([20, 57])
         ax.set_xlim([0, 120])
         linesTp.append(
                 ax.plot(range(120),

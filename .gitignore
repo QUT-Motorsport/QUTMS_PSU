@@ -22,3 +22,7 @@ py_modulesWin
 
 # Outputs
 *.gif
+
+# Current Sensing
+SFPSensor
+tests

@@ -8,9 +8,9 @@ import matplotlib as mpl  # Plot functionality
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-import tflite_runtime.interpreter as tflite
+# import tflite_runtime.interpreter as tflite
 
-from scipy import integrate # integration with trapizoid
+# from scipy import integrate # integration with trapizoid
 
 mpl.rcParams['figure.figsize'] = (32, 16)
 mpl.rcParams['axes.grid'] = True
@@ -18,8 +18,8 @@ mpl.rcParams['font.family'] = 'Bender'
 
 my_cmap = cm.get_cmap('jet_r')
 
-output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
-# output_loc  : str = '/home/xana/tmp/June11/'
+# output_loc  : str = '/mnt/LibrarySM/SHARED/Data/BMS_data/June11/'
+output_loc  : str = '/home/user/tmp/November16/'
 # %%
 # Current data and plot
 BMSCurrent  : pd.DataFrame = pd.read_csv(
@@ -83,7 +83,7 @@ for i in range(0, 6):
     try:
         #* Voltages
         BMSsVoltages.append(
-                pd.read_csv(filepath_or_buffer=f'{output_loc}Voltages/CANid_{i}.csv',
+                pd.read_csv(filepath_or_buffer=f'{output_loc}VoltageInfo/CANid_{i}.csv',
                             sep=',', verbose=True)
             )
         BMSsFUDS_V.append(
@@ -97,7 +97,7 @@ for i in range(0, 6):
         
         #* Temperature
         BMSsTemperatures.append(
-                pd.read_csv(filepath_or_buffer=f'{output_loc}Temperatures/CANid_{i}.csv',
+                pd.read_csv(filepath_or_buffer=f'{output_loc}TemperatureInfo/CANid_{i}.csv',
                             sep=',', verbose=True)
             )
         BMSsFUDS_T.append(
